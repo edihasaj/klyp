@@ -100,9 +100,13 @@ struct AboutView: View {
             Link("github.com/edihasaj/klyp", destination: URL(string: "https://github.com/edihasaj/klyp")!)
                 .font(.system(size: 12))
             Spacer()
-            Text("© Edi Hasaj · MIT")
-                .font(.system(size: 10))
-                .foregroundStyle(.secondary)
+            HStack(spacing: 4) {
+                Text("©")
+                Link("Edi Hasaj", destination: URL(string: "https://edihasaj.com")!)
+                Text("· MIT")
+            }
+            .font(.system(size: 10))
+            .foregroundStyle(.secondary)
         }
         .padding()
         .frame(maxWidth: .infinity, maxHeight: .infinity)
