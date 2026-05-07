@@ -1,0 +1,17 @@
+# Build artifacts
+build/
+DerivedData/
+*.xcodeproj/
+*.xcworkspace/xcuserdata/
+xcuserdata/
+*.xcuserstate
+
+# macOS
+.DS_Store
+
+# Packaging
+dist/
+*.zip
+
+# Archives
+*.xcarchive
