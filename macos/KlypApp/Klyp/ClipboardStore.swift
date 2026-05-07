@@ -54,7 +54,12 @@ final class ClipboardStore {
 
     func togglePin(id: UUID) {
         guard let idx = items.firstIndex(where: { $0.id == id }) else { return }
-        items[idx].pinned.toggle()
+        // Replace the whole element (and reassign the array) so @Observable
+        // fires a change notification — toggling .pinned through subscript
+        // mutation isn't always picked up by the macro.
+        var copy = items
+        copy[idx].pinned.toggle()
+        items = copy
         persist()
     }
 

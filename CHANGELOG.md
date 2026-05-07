@@ -6,6 +6,17 @@ All notable changes to Klyp will be documented in this file. The format follows
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-05-07
+
+### Fixed
+- Pin/unpin from the row context menu now updates immediately (was a missed
+  `@Observable` change notification when mutating array elements through a
+  subscript).
+- Image previews in the history list are now 56×56 with `.fit` so the whole
+  image is visible at a glance, and image rows have a subtle border.
+
+## [0.1.0] - 2026-05-07
+
 ### Added
 - Initial release: menu-bar clipboard history for text, rich text, images,
   file references, and URLs.
