@@ -11,7 +11,7 @@ All notable changes to Klyp will be documented in this file. The format follows
   file references, and URLs.
 - Configurable history size (5–200, default 10) with pinned-item retention.
 - Search-as-you-type popover with `⌘1–9` quick paste.
-- Global hotkey `⇧⌘V` (Carbon-registered) to toggle the popover.
+- Global hotkey `⌃Space` (Carbon-registered) to toggle the popover.
 - Paste-back synthesizes `⌘V` to the previously-frontmost app.
 - Settings window with launch-at-login toggle (`SMAppService`).
 - About window showing build version.

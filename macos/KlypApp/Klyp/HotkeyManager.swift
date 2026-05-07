@@ -49,7 +49,8 @@ final class HotkeyManager {
 }
 
 enum DefaultHotkey {
-    /// kVK_ANSI_V = 9, paired with ⇧⌘ matches CopyClip's default.
-    static let keyCode: UInt32 = 9
-    static let modifiers: UInt32 = UInt32(cmdKey | shiftKey)
+    /// kVK_Space = 49, paired with ⌃ for an unobtrusive trigger that doesn't
+    /// stomp on editors' ⇧⌘V (paste-and-match-style).
+    static let keyCode: UInt32 = 49
+    static let modifiers: UInt32 = UInt32(controlKey)
 }

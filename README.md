@@ -12,7 +12,7 @@ CopyClip and CopyClip 2 — but one that doesn't fall over.
 - 📋 Tracks text, rich text, images, file references (videos, PDFs, anything),
   and URLs.
 - 🔍 Searchable popover that follows your light/dark system theme.
-- ⌨️ Global hotkey (default `⇧⌘V`) — same as CopyClip muscle memory.
+- ⌨️ Global hotkey (default `⌃Space`) — leaves `⇧⌘V` free for editor paste-and-match.
 - 🔢 Configurable history size (default 10, up to 200).
 - 📌 Pin items so they survive eviction.
 - 🧊 Lives in the menu bar only — no Dock icon, minimal CPU.
@@ -50,7 +50,7 @@ Klyp does not phone home. History stays on your machine in
 
 | Action                       | Shortcut |
 | ---------------------------- | -------- |
-| Toggle Klyp popover          | `⇧⌘V`    |
+| Toggle Klyp popover          | `⌃Space` |
 | Paste item N (in popover)    | `⌘1–9`   |
 | Search                       | type any letter |
 | Clear history                | `⌘⌫`     |

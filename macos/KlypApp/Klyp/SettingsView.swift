@@ -52,7 +52,7 @@ struct SettingsView: View {
     private var shortcuts: some View {
         Form {
             Section("Global") {
-                LabeledContent("Toggle Klyp", value: "⇧⌘V")
+                LabeledContent("Toggle Klyp", value: "⌃Space")
             }
             Section("In popover") {
                 LabeledContent("Paste selected", value: "↵")
