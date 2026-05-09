@@ -1,4 +1,8 @@
-# Klyp
+<p align="center">
+  <img src="docs/icon.png" alt="Klyp" width="160" height="160">
+</p>
+
+<h1 align="center">Klyp</h1>
 
 A lightweight, modern clipboard history manager for macOS. Lives in your menu
 bar, remembers everything you copy — text, images, files, URLs — and pastes it
