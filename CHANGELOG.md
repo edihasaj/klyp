@@ -6,6 +6,13 @@ All notable changes to Klyp will be documented in this file. The format follows
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-05-09
+
+### Changed
+- Release builds are now notarized and stapled by Apple, so first launch via
+  Homebrew or a direct download no longer trips Gatekeeper's "developer cannot
+  be verified" dialog and the manual `xattr` quarantine workaround is gone.
+
 ## [0.1.1] - 2026-05-07
 
 ### Fixed
