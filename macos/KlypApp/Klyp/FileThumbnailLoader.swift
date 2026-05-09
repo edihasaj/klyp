@@ -11,6 +11,7 @@ final class FileThumbnailLoader {
 
     private var memoryCache: [String: NSImage] = [:]
     private var negativeCache: Set<String> = []
+    private static var previewableCache: [String: Bool] = [:]
 
     static let thumbnailCacheDir: URL = {
         let dir = AppPaths.supportDir.appendingPathComponent("Thumbnails", isDirectory: true)
@@ -19,14 +20,19 @@ final class FileThumbnailLoader {
     }()
 
     static func isPreviewable(_ path: String) -> Bool {
+        if let cached = previewableCache[path] { return cached }
         let url = URL(fileURLWithPath: path)
-        guard let type = try? url.resourceValues(forKeys: [.contentTypeKey]).contentType else {
-            return false
+        let result: Bool
+        if let type = try? url.resourceValues(forKeys: [.contentTypeKey]).contentType {
+            result = type.conforms(to: .image)
+                || type.conforms(to: .movie)
+                || type.conforms(to: .pdf)
+                || type.conforms(to: .audiovisualContent)
+        } else {
+            result = false
         }
-        return type.conforms(to: .image)
-            || type.conforms(to: .movie)
-            || type.conforms(to: .pdf)
-            || type.conforms(to: .audiovisualContent)
+        previewableCache[path] = result
+        return result
     }
 
     func thumbnail(for path: String, size: CGSize) async -> NSImage? {

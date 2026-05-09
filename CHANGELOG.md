@@ -6,6 +6,19 @@ All notable changes to Klyp will be documented in this file. The format follows
 
 ## [Unreleased]
 
+## [0.1.4] - 2026-05-09
+
+### Fixed
+- `⌘1`–`⌘9` quick-paste and `⌘P` pin shortcuts (advertised in the footer)
+  are now actually wired up.
+- Clicking a row used to take 1–3 seconds to register because a single-tap
+  selection gesture and a double-tap paste gesture were fighting over the
+  same hit area; clicking a row now pastes immediately, matching how other
+  clipboard managers behave.
+- File previewability detection no longer hits the filesystem on every
+  redraw — results are cached per path so scrolling a long history stays
+  smooth.
+
 ## [0.1.3] - 2026-05-09
 
 ### Added

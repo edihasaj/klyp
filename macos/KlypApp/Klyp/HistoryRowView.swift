@@ -40,7 +40,7 @@ struct HistoryRowView: View {
         .background(rowBackground)
         .clipShape(RoundedRectangle(cornerRadius: 6))
         .contentShape(RoundedRectangle(cornerRadius: 6))
-        .onTapGesture(count: 2) { onPaste() }
+        .onTapGesture { onPaste() }
         .contextMenu {
             Button("Paste", action: onPaste)
             Button(item.pinned ? "Unpin" : "Pin", action: onPin)

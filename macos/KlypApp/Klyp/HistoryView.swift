@@ -34,6 +34,22 @@ struct HistoryView: View {
                 .onKeyPress(.upArrow) { selection = max(0, selection - 1); return .handled }
                 .onKeyPress(.downArrow) { selection = min(filtered.count - 1, selection + 1); return .handled }
                 .onKeyPress(.escape) { coordinator.close(); return .handled }
+                .onKeyPress(phases: .down) { press in
+                    guard press.modifiers.contains(.command) else { return .ignored }
+                    let chars = press.characters
+                    if chars == "p" || chars == "P" {
+                        guard selection < filtered.count else { return .handled }
+                        store.togglePin(id: filtered[selection].id)
+                        return .handled
+                    }
+                    if let n = Int(chars), (1...9).contains(n) {
+                        let idx = n - 1
+                        guard idx < filtered.count else { return .handled }
+                        pasteItem(filtered[idx])
+                        return .handled
+                    }
+                    return .ignored
+                }
             Spacer()
             if !query.isEmpty {
                 Button {
@@ -76,7 +92,6 @@ struct HistoryView: View {
                                 onDelete: { store.delete(id: item.id) }
                             )
                             .id(item.id)
-                            .onTapGesture { selection = index }
                         }
                     }
                     .padding(.vertical, 4)
