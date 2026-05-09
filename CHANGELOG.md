@@ -6,6 +6,15 @@ All notable changes to Klyp will be documented in this file. The format follows
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-05-09
+
+### Added
+- File-based clipboard items (screenshots, photos, videos, PDFs copied from
+  Finder, Photos, etc.) now show real QuickLook thumbnails in the history
+  list instead of a generic doc icon. Thumbnails are generated asynchronously
+  with a memory + on-disk cache under `~/Library/Application Support/Klyp/Thumbnails/`,
+  and fall back gracefully to the doc icon when QuickLook can't render.
+
 ## [0.1.2] - 2026-05-09
 
 ### Changed
