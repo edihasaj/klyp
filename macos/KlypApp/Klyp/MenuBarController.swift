@@ -17,9 +17,7 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
         super.init()
 
         if let button = statusItem.button {
-            let img = NSImage(systemSymbolName: "doc.on.clipboard", accessibilityDescription: "Klyp")
-            img?.isTemplate = true
-            button.image = img
+            button.image = Self.menuBarIcon(active: false)
             button.target = self
             button.action = #selector(handleClick(_:))
             button.sendAction(on: [.leftMouseUp, .rightMouseUp])
@@ -56,6 +54,7 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
     func show() {
         guard let button = statusItem.button else { return }
         NSApp.activate(ignoringOtherApps: true)
+        button.image = Self.menuBarIcon(active: true)
         popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
         installCloseMonitor()
     }
@@ -63,6 +62,52 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
     func close() {
         popover.performClose(nil)
         removeCloseMonitor()
+    }
+
+    /// Stack-of-cards mark, drawn programmatically so it can switch between a
+    /// menu-bar template (auto-tints to white in dark menu bar / black in light)
+    /// and a brand-pink "active" version when the popover is showing.
+    static func menuBarIcon(active: Bool) -> NSImage {
+        let size: CGFloat = 18
+        let image = NSImage(size: NSSize(width: size, height: size), flipped: false) { _ in
+            guard let ctx = NSGraphicsContext.current?.cgContext else { return false }
+            let s = size
+            let cardW = s * 0.62
+            let cardH = s * 0.74
+            let cx = s / 2
+            let cy = s / 2
+            let corner = s * 0.13
+
+            let activeColor = CGColor(red: 1.0, green: 0.42, blue: 0.62, alpha: 1.0)
+            let layers: [(dx: CGFloat, dy: CGFloat, alpha: CGFloat)] = [
+                (-s * 0.10, -s * 0.10, 0.45),
+                (0, 0, 0.75),
+                (s * 0.10, s * 0.10, 1.00),
+            ]
+
+            for layer in layers {
+                let rect = CGRect(
+                    x: cx - cardW / 2 + layer.dx,
+                    y: cy - cardH / 2 + layer.dy,
+                    width: cardW, height: cardH
+                )
+                if active {
+                    var (r, g, b, a) = (CGFloat(0), CGFloat(0), CGFloat(0), CGFloat(0))
+                    NSColor(cgColor: activeColor)?.getRed(&r, green: &g, blue: &b, alpha: &a)
+                    ctx.setFillColor(red: r, green: g, blue: b, alpha: layer.alpha)
+                } else {
+                    ctx.setFillColor(CGColor(gray: 0, alpha: layer.alpha))
+                }
+                ctx.addPath(CGPath(
+                    roundedRect: rect,
+                    cornerWidth: corner, cornerHeight: corner, transform: nil
+                ))
+                ctx.fillPath()
+            }
+            return true
+        }
+        image.isTemplate = !active
+        return image
     }
 
     private func showContextMenu(_ sender: NSStatusBarButton) {
@@ -104,6 +149,9 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
     }
 
     nonisolated func popoverDidClose(_ notification: Notification) {
-        Task { @MainActor in self.removeCloseMonitor() }
+        Task { @MainActor in
+            self.removeCloseMonitor()
+            self.statusItem.button?.image = Self.menuBarIcon(active: false)
+        }
     }
 }

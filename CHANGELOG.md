@@ -6,6 +6,17 @@ All notable changes to Klyp will be documented in this file. The format follows
 
 ## [Unreleased]
 
+## [0.1.5] - 2026-05-09
+
+### Added
+- App icon — gradient squircle with a stacked-cards mark and a warm pin
+  accent, rendered at every macOS size (16 px through 1024 px). Replaces
+  the default Xcode icon in the Applications folder, Dock, and About window.
+- Menu-bar icon now matches the brand: a custom stacked-cards mark that
+  renders as a template (auto-tints to white in dark menu bars / black in
+  light) when idle, and switches to brand pink while the popover is open
+  (mirrors the active-state pattern used by ChirpGo).
+
 ## [0.1.4] - 2026-05-09
 
 ### Fixed
