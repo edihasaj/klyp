@@ -34,11 +34,11 @@ final class AppCoordinator {
         menuBar?.close()
     }
 
-    func paste(_ item: ClipboardItem) {
+    func paste(_ item: ClipboardItem, forceRaw: Bool = false) {
         close()
         // Wait briefly for the popover to dismiss so the keystroke goes to the previously frontmost app.
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) { [watcher] in
-            let cc = Paster.paste(item)
+            let cc = Paster.paste(item, forceRaw: forceRaw)
             watcher.ignoreNextChangeCount = cc + 1
         }
     }

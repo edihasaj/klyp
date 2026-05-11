@@ -6,6 +6,25 @@ All notable changes to Klyp will be documented in this file. The format follows
 
 ## [Unreleased]
 
+## [0.1.6] - 2026-05-11
+
+### Added
+- **Smart-trim on paste.** Multi-line shell snippets you copy from blogs,
+  READMEs, or chat output (with backslash continuations, prompt gutters,
+  pipes across lines, box-drawing characters) are flattened into a single
+  runnable line at paste time — but only when the focused app is a terminal
+  (Terminal, iTerm, Ghostty, Warp, kitty, WezTerm, Hyper, Alacritty).
+  Prose, Markdown, bullet lists, YAML/JSON, and Python blocks are left
+  alone. The original clipboard entry is never mutated, so the same item
+  pastes flat into Ghostty and unchanged into TextEdit.
+- New **Trimming** tab in Settings with a master toggle, separate
+  aggressiveness pickers (Off / Low / Normal / High) for terminals vs.
+  general apps, and switches for blank-line preservation and box-drawing
+  stripping. Default: on, Normal in terminals, Off elsewhere.
+- Hold `⌥` (Option) while pasting — by click, `↵`, or `⌘1`–`⌘9` — to skip
+  the trim and paste the original text. The popover footer now shows the
+  `⌥↵ Raw` hint and each row's context menu has a "Paste Original" entry.
+
 ## [0.1.5] - 2026-05-09
 
 ### Added

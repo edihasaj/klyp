@@ -88,6 +88,7 @@ struct HistoryView: View {
                                 index: index,
                                 isSelected: index == selection,
                                 onPaste: { pasteItem(item) },
+                                onPasteRaw: { pasteItem(item, forceRaw: true) },
                                 onPin: { store.togglePin(id: item.id) },
                                 onDelete: { store.delete(id: item.id) }
                             )
@@ -112,6 +113,7 @@ struct HistoryView: View {
             footerHint("↵", "Paste")
             footerHint("⌘1–9", "Quick")
             footerHint("⌘P", "Pin")
+            footerHint("⌥↵", "Raw")
             Spacer()
             Menu {
                 Button("Settings…") { coordinator.openSettings() }
@@ -164,7 +166,8 @@ struct HistoryView: View {
         pasteItem(filtered[selection])
     }
 
-    private func pasteItem(_ item: ClipboardItem) {
-        coordinator.paste(item)
+    private func pasteItem(_ item: ClipboardItem, forceRaw: Bool = false) {
+        let optionHeld = NSEvent.modifierFlags.contains(.option)
+        coordinator.paste(item, forceRaw: forceRaw || optionHeld)
     }
 }

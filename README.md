@@ -19,6 +19,10 @@ CopyClip and CopyClip 2 — but one that doesn't fall over.
 - ⌨️ Global hotkey (default `⌃Space`) — leaves `⇧⌘V` free for editor paste-and-match.
 - 🔢 Configurable history size (default 10, up to 200).
 - 📌 Pin items so they survive eviction.
+- ✂️ Smart-trim on paste: multi-line shell snippets (backslash continuations,
+  `$`/`#` prompts, box-drawing gutters) are flattened to a single runnable
+  line — but only when pasting into a terminal. Markdown, prose, YAML/JSON,
+  and code stay intact. Hold `⌥` to paste raw.
 - 🧊 Lives in the menu bar only — no Dock icon, minimal CPU.
 - 🎨 Native macOS look across light/dark and accent colors.
 

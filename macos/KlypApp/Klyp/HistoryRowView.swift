@@ -5,6 +5,7 @@ struct HistoryRowView: View {
     let index: Int
     let isSelected: Bool
     let onPaste: () -> Void
+    let onPasteRaw: () -> Void
     let onPin: () -> Void
     let onDelete: () -> Void
 
@@ -43,6 +44,9 @@ struct HistoryRowView: View {
         .onTapGesture { onPaste() }
         .contextMenu {
             Button("Paste", action: onPaste)
+            if item.kind == .text {
+                Button("Paste Original", action: onPasteRaw)
+            }
             Button(item.pinned ? "Unpin" : "Pin", action: onPin)
             Divider()
             Button("Delete", role: .destructive, action: onDelete)

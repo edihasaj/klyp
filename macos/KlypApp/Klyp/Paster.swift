@@ -6,12 +6,44 @@ enum Paster {
     /// Place item back on the pasteboard and synthesize a ⌘V keystroke into the
     /// frontmost app. Returns the new pasteboard changeCount so the watcher can
     /// ignore its own write.
+    ///
+    /// `forceRaw` skips smart-trim even when settings would apply it (used by
+    /// the ⌥-held paste and the "Paste Original" context menu item).
     @discardableResult
-    static func paste(_ item: ClipboardItem) -> Int {
-        writeToPasteboard(item)
+    static func paste(_ item: ClipboardItem, forceRaw: Bool = false) -> Int {
+        let effective = forceRaw ? item : applyTrim(item)
+        writeToPasteboard(effective)
         let cc = NSPasteboard.general.changeCount
         synthesizeCommandV()
         return cc
+    }
+
+    /// If the item is text and the user's trim settings apply to the
+    /// frontmost app, return a new item with flattened text. Otherwise the
+    /// original item is returned unchanged.
+    static func applyTrim(_ item: ClipboardItem) -> ClipboardItem {
+        guard item.kind == .text else { return item }
+        let settings = TrimSettings.load()
+        let isTerm = TerminalApps.isTerminal(bundleID: TerminalApps.frontmostBundleID())
+        let level = settings.aggressiveness(forTerminal: isTerm)
+        guard level != .off else { return item }
+        let trimmer = CommandTrimmer(
+            aggressiveness: level,
+            preserveBlankLines: settings.preserveBlankLines,
+            removeBoxDrawing: settings.removeBoxDrawing
+        )
+        guard let flat = trimmer.transformIfCommand(item.text) else { return item }
+        return ClipboardItem(
+            id: item.id,
+            kind: item.kind,
+            createdAt: item.createdAt,
+            text: flat,
+            rtfData: item.rtfData,
+            imageFilename: item.imageFilename,
+            filePaths: item.filePaths,
+            hash: item.hash,
+            pinned: item.pinned
+        )
     }
 
     static func writeToPasteboard(_ item: ClipboardItem) {

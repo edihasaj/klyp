@@ -5,16 +5,24 @@ struct SettingsView: View {
     @AppStorage("klyp.maxItems") private var maxItems: Int = 10
     @AppStorage("klyp.launchAtLogin") private var launchAtLogin: Bool = false
 
+    @AppStorage(TrimSettings.Keys.enabled) private var trimEnabled: Bool = true
+    @AppStorage(TrimSettings.Keys.terminalLevel) private var terminalLevelRaw: String = Aggressiveness.normal.rawValue
+    @AppStorage(TrimSettings.Keys.generalLevel) private var generalLevelRaw: String = Aggressiveness.off.rawValue
+    @AppStorage(TrimSettings.Keys.preserveBlankLines) private var preserveBlankLines: Bool = true
+    @AppStorage(TrimSettings.Keys.removeBoxDrawing) private var removeBoxDrawing: Bool = true
+
     var body: some View {
         TabView {
             general
                 .tabItem { Label("General", systemImage: "gearshape") }
+            trimming
+                .tabItem { Label("Trimming", systemImage: "scissors") }
             shortcuts
                 .tabItem { Label("Shortcuts", systemImage: "keyboard") }
             about
                 .tabItem { Label("About", systemImage: "info.circle") }
         }
-        .frame(width: 420, height: 320)
+        .frame(width: 460, height: 380)
     }
 
     private var general: some View {
@@ -47,6 +55,58 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
+    }
+
+    private var trimming: some View {
+        Form {
+            Section {
+                Toggle("Smart-trim on paste", isOn: $trimEnabled)
+            } footer: {
+                Text("Flattens multi-line shell snippets (continuation backslashes, prompt gutters, box-drawing) so they paste and run cleanly. Other text is left alone.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+            }
+
+            Section("Aggressiveness") {
+                Picker("In terminals", selection: $terminalLevelRaw) {
+                    ForEach(Aggressiveness.allCases) { level in
+                        Text(level.title).tag(level.rawValue)
+                    }
+                }
+                .help(currentTerminalBlurb)
+                .disabled(!trimEnabled)
+
+                Picker("In other apps", selection: $generalLevelRaw) {
+                    ForEach(Aggressiveness.allCases) { level in
+                        Text(level.title).tag(level.rawValue)
+                    }
+                }
+                .help(currentGeneralBlurb)
+                .disabled(!trimEnabled)
+            }
+
+            Section("Formatting") {
+                Toggle("Preserve intentional blank lines", isOn: $preserveBlankLines)
+                    .disabled(!trimEnabled)
+                Toggle("Strip box-drawing characters (│ ┃)", isOn: $removeBoxDrawing)
+                    .disabled(!trimEnabled)
+            }
+
+            Section {
+                Text("Tip: hold ⌥ while pasting to skip the trim and send the original text.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .formStyle(.grouped)
+    }
+
+    private var currentTerminalBlurb: String {
+        Aggressiveness(rawValue: terminalLevelRaw)?.blurb ?? ""
+    }
+
+    private var currentGeneralBlurb: String {
+        Aggressiveness(rawValue: generalLevelRaw)?.blurb ?? ""
     }
 
     private var shortcuts: some View {
