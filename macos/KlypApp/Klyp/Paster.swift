@@ -9,22 +9,26 @@ enum Paster {
     ///
     /// `forceRaw` skips smart-trim even when settings would apply it (used by
     /// the ⌥-held paste and the "Paste Original" context menu item).
+    /// `targetBundleID` is the bundle ID of the app the paste will land in,
+    /// captured before Klyp activated itself. Falls back to a live lookup
+    /// when omitted (e.g. unit tests).
     @discardableResult
-    static func paste(_ item: ClipboardItem, forceRaw: Bool = false) -> Int {
-        let effective = forceRaw ? item : applyTrim(item)
+    static func paste(_ item: ClipboardItem, forceRaw: Bool = false, targetBundleID: String? = nil) -> Int {
+        let effective = forceRaw ? item : applyTrim(item, targetBundleID: targetBundleID)
         writeToPasteboard(effective)
         let cc = NSPasteboard.general.changeCount
         synthesizeCommandV()
         return cc
     }
 
-    /// If the item is text and the user's trim settings apply to the
-    /// frontmost app, return a new item with flattened text. Otherwise the
-    /// original item is returned unchanged.
-    static func applyTrim(_ item: ClipboardItem) -> ClipboardItem {
+    /// If the item is text and the user's trim settings apply to the target
+    /// app, return a new item with flattened text. Otherwise the original is
+    /// returned unchanged.
+    static func applyTrim(_ item: ClipboardItem, targetBundleID: String? = nil) -> ClipboardItem {
         guard item.kind == .text else { return item }
         let settings = TrimSettings.load()
-        let isTerm = TerminalApps.isTerminal(bundleID: TerminalApps.frontmostBundleID())
+        let bundleID = targetBundleID ?? TerminalApps.frontmostBundleID()
+        let isTerm = TerminalApps.isTerminal(bundleID: bundleID)
         let level = settings.aggressiveness(forTerminal: isTerm)
         guard level != .off else { return item }
         let trimmer = CommandTrimmer(

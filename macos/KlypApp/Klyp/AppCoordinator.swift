@@ -11,6 +11,12 @@ final class AppCoordinator {
     private var settingsWindow: NSWindow?
     private var aboutWindow: NSWindow?
 
+    /// Bundle ID of the app that was frontmost just before Klyp's popover opened.
+    /// Captured because `NSApp.activate` makes Klyp itself frontmost while the
+    /// popover is shown — by the time paste runs, a live lookup would return
+    /// `com.edihasaj.klyp` and the trim path would miss its terminal target.
+    var previousFrontmostBundleID: String?
+
     init() {
         let saved = UserDefaults.standard.integer(forKey: "klyp.maxItems")
         let initialMax = saved == 0 ? 10 : saved
@@ -35,10 +41,11 @@ final class AppCoordinator {
     }
 
     func paste(_ item: ClipboardItem, forceRaw: Bool = false) {
+        let targetBundleID = previousFrontmostBundleID
         close()
         // Wait briefly for the popover to dismiss so the keystroke goes to the previously frontmost app.
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) { [watcher] in
-            let cc = Paster.paste(item, forceRaw: forceRaw)
+            let cc = Paster.paste(item, forceRaw: forceRaw, targetBundleID: targetBundleID)
             watcher.ignoreNextChangeCount = cc + 1
         }
     }

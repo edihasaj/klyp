@@ -6,6 +6,16 @@ All notable changes to Klyp will be documented in this file. The format follows
 
 ## [Unreleased]
 
+## [0.1.7] - 2026-05-11
+
+### Fixed
+- Smart-trim now actually fires when pasting into terminals. v0.1.6 looked
+  up the frontmost app at paste time, but Klyp had already activated itself
+  to show the popover — so the lookup returned `com.edihasaj.klyp` and the
+  terminal-aggressiveness branch was never taken. Klyp now snapshots the
+  previously frontmost app *before* activating, and uses that bundle ID
+  when deciding whether to trim.
+
 ## [0.1.6] - 2026-05-11
 
 ### Added

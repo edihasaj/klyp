@@ -53,6 +53,12 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
 
     func show() {
         guard let button = statusItem.button else { return }
+        // Snapshot the app that's frontmost *before* we activate Klyp — paste
+        // time uses this to decide whether the target app is a terminal.
+        let prior = NSWorkspace.shared.frontmostApplication?.bundleIdentifier
+        if prior != Bundle.main.bundleIdentifier {
+            coordinator?.previousFrontmostBundleID = prior
+        }
         NSApp.activate(ignoringOtherApps: true)
         button.image = Self.menuBarIcon(active: true)
         popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
