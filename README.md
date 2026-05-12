@@ -23,6 +23,9 @@ CopyClip and CopyClip 2 — but one that doesn't fall over.
   `$`/`#` prompts, box-drawing gutters) are flattened to a single runnable
   line — but only when pasting into a terminal. Markdown, prose, YAML/JSON,
   and code stay intact. Hold `⌥` to paste raw.
+- 📥 Markdown-aware terminal paste: pulls commands out of ``` fences and
+  de-indents text quoted under a chat bullet, so copying an LLM reply with
+  surrounding prose still pastes a clean runnable command.
 - 🧊 Lives in the menu bar only — no Dock icon, minimal CPU.
 - 🎨 Native macOS look across light/dark and accent colors.
 

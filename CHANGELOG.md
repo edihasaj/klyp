@@ -6,6 +6,19 @@ All notable changes to Klyp will be documented in this file. The format follows
 
 ## [Unreleased]
 
+## [0.1.8] - 2026-05-12
+
+### Added
+- **Markdown extraction on paste into terminals.** When the target app is a
+  terminal, Klyp now pulls runnable content out of Markdown-shaped text
+  before flattening: fenced code blocks (``` … ``` or `~~~ … ~~~`, with or
+  without a language tag) have their bodies extracted, and text that's
+  uniformly indented (e.g. commands quoted under a chat bullet) is
+  dedented. Surrounding prose is dropped. Pastes into non-terminal apps
+  keep the original Markdown — the trim is only applied where it helps.
+  New toggle in Settings → Trimming ("Extract code from Markdown
+  (terminals)"), on by default. The `⌥`-held raw paste still bypasses it.
+
 ## [0.1.7] - 2026-05-11
 
 ### Fixed

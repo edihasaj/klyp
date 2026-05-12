@@ -30,18 +30,33 @@ enum Paster {
         let bundleID = targetBundleID ?? TerminalApps.frontmostBundleID()
         let isTerm = TerminalApps.isTerminal(bundleID: bundleID)
         let level = settings.aggressiveness(forTerminal: isTerm)
-        guard level != .off else { return item }
-        let trimmer = CommandTrimmer(
-            aggressiveness: level,
-            preserveBlankLines: settings.preserveBlankLines,
-            removeBoxDrawing: settings.removeBoxDrawing
-        )
-        guard let flat = trimmer.transformIfCommand(item.text) else { return item }
+        // Markdown extraction is terminal-only — stripping fences/indent from a
+        // paste into TextEdit or a chat box would destroy formatting the user
+        // wanted.
+        let extracted = (settings.extractMarkdown && isTerm)
+            ? MarkdownExtractor.extract(item.text)
+            : nil
+
+        guard level != .off || extracted != nil else { return item }
+
+        var text = extracted ?? item.text
+        if level != .off {
+            let trimmer = CommandTrimmer(
+                aggressiveness: level,
+                preserveBlankLines: settings.preserveBlankLines,
+                removeBoxDrawing: settings.removeBoxDrawing
+            )
+            if let flat = trimmer.transformIfCommand(text) {
+                text = flat
+            }
+        }
+        guard text != item.text else { return item }
+
         return ClipboardItem(
             id: item.id,
             kind: item.kind,
             createdAt: item.createdAt,
-            text: flat,
+            text: text,
             rtfData: item.rtfData,
             imageFilename: item.imageFilename,
             filePaths: item.filePaths,

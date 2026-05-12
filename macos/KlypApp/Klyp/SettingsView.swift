@@ -10,6 +10,7 @@ struct SettingsView: View {
     @AppStorage(TrimSettings.Keys.generalLevel) private var generalLevelRaw: String = Aggressiveness.off.rawValue
     @AppStorage(TrimSettings.Keys.preserveBlankLines) private var preserveBlankLines: Bool = true
     @AppStorage(TrimSettings.Keys.removeBoxDrawing) private var removeBoxDrawing: Bool = true
+    @AppStorage(TrimSettings.Keys.extractMarkdown) private var extractMarkdown: Bool = true
 
     var body: some View {
         TabView {
@@ -83,6 +84,14 @@ struct SettingsView: View {
                 }
                 .help(currentGeneralBlurb)
                 .disabled(!trimEnabled)
+            }
+
+            Section {
+                Toggle("Extract code from Markdown (terminals)", isOn: $extractMarkdown)
+            } footer: {
+                Text("When pasting into a terminal, pull commands out of ``` fences or de-indent text quoted under a chat bullet. Other apps keep the original Markdown.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
             }
 
             Section("Formatting") {
