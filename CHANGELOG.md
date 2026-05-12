@@ -6,6 +6,14 @@ All notable changes to Klyp will be documented in this file. The format follows
 
 ## [Unreleased]
 
+## [0.1.9] - 2026-05-12
+
+### Build
+- The release `.app` is now notarized by Apple and stapled, in addition to
+  the existing Developer ID signature. First-launch Gatekeeper prompts
+  ("downloaded from the internet") are gone, and a fresh install no longer
+  requires a quarantine bypass. No behavior changes vs. 0.1.8.
+
 ## [0.1.8] - 2026-05-12
 
 ### Added
