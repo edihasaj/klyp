@@ -6,7 +6,23 @@ All notable changes to Klyp will be documented in this file. The format follows
 
 ## [Unreleased]
 
-## [0.1.9] - 2026-05-12
+## [0.1.10] - 2026-05-14
+
+### Added
+- **Source-aware soft-wrap collapse.** Klyp now records the bundle ID of the
+  app that wrote each clipboard entry. When you copy from a terminal whose
+  window is narrow enough to wrap a long message into hard-newlined chunks
+  (Ghostty, iTerm, Terminal, Warp, etc.) and then paste into a non-terminal
+  target (chat, email, notes), Klyp joins those wrapped lines back into a
+  single line — preserving real paragraph breaks. Gated on the existing
+  master trim toggle and `Terminal aggressiveness ≠ Off`. Pasting back into
+  a terminal keeps the line breaks (you pulled them out for a reason).
+
+### Fixed
+- Verified that pinned items survive a restart end-to-end with regression
+  tests against a real on-disk history file, not just the in-memory store.
+
+
 
 ### Build
 - The release `.app` is now notarized by Apple and stapled, in addition to

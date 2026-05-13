@@ -25,6 +25,11 @@ struct ClipboardItem: Identifiable, Codable, Equatable, Sendable {
     /// Stable hash for dedupe across pasteboard reads.
     let hash: String
     var pinned: Bool
+    /// Bundle ID of the app that was frontmost when this item was captured —
+    /// used at paste time to apply source-aware transforms (e.g. collapsing
+    /// soft-wrap newlines from a narrow terminal window). Nil for items from
+    /// older history files.
+    let sourceBundleID: String?
 
     var byteCount: Int {
         var n = text.utf8.count
@@ -35,7 +40,7 @@ struct ClipboardItem: Identifiable, Codable, Equatable, Sendable {
 }
 
 extension ClipboardItem {
-    static func text(_ s: String, hash: String) -> ClipboardItem {
+    static func text(_ s: String, hash: String, sourceBundleID: String? = nil) -> ClipboardItem {
         ClipboardItem(
             id: UUID(),
             kind: .text,
@@ -45,11 +50,12 @@ extension ClipboardItem {
             imageFilename: nil,
             filePaths: nil,
             hash: hash,
-            pinned: false
+            pinned: false,
+            sourceBundleID: sourceBundleID
         )
     }
 
-    static func richText(plain: String, rtf: Data, hash: String) -> ClipboardItem {
+    static func richText(plain: String, rtf: Data, hash: String, sourceBundleID: String? = nil) -> ClipboardItem {
         ClipboardItem(
             id: UUID(),
             kind: .richText,
@@ -59,11 +65,12 @@ extension ClipboardItem {
             imageFilename: nil,
             filePaths: nil,
             hash: hash,
-            pinned: false
+            pinned: false,
+            sourceBundleID: sourceBundleID
         )
     }
 
-    static func image(filename: String, caption: String, hash: String) -> ClipboardItem {
+    static func image(filename: String, caption: String, hash: String, sourceBundleID: String? = nil) -> ClipboardItem {
         ClipboardItem(
             id: UUID(),
             kind: .image,
@@ -73,11 +80,12 @@ extension ClipboardItem {
             imageFilename: filename,
             filePaths: nil,
             hash: hash,
-            pinned: false
+            pinned: false,
+            sourceBundleID: sourceBundleID
         )
     }
 
-    static func files(_ paths: [String], caption: String, hash: String) -> ClipboardItem {
+    static func files(_ paths: [String], caption: String, hash: String, sourceBundleID: String? = nil) -> ClipboardItem {
         ClipboardItem(
             id: UUID(),
             kind: .files,
@@ -87,11 +95,12 @@ extension ClipboardItem {
             imageFilename: nil,
             filePaths: paths,
             hash: hash,
-            pinned: false
+            pinned: false,
+            sourceBundleID: sourceBundleID
         )
     }
 
-    static func url(_ s: String, hash: String) -> ClipboardItem {
+    static func url(_ s: String, hash: String, sourceBundleID: String? = nil) -> ClipboardItem {
         ClipboardItem(
             id: UUID(),
             kind: .url,
@@ -101,7 +110,8 @@ extension ClipboardItem {
             imageFilename: nil,
             filePaths: nil,
             hash: hash,
-            pinned: false
+            pinned: false,
+            sourceBundleID: sourceBundleID
         )
     }
 }

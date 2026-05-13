@@ -8,11 +8,18 @@ final class ClipboardStore {
     var maxItems: Int
 
     private let persistQueue = DispatchQueue(label: "klyp.persist", qos: .utility)
-    private let fileURL = AppPaths.historyFile
+    private let fileURL: URL
 
-    init(maxItems: Int = 10) {
+    init(maxItems: Int = 10, fileURL: URL = AppPaths.historyFile) {
         self.maxItems = maxItems
+        self.fileURL = fileURL
         load()
+    }
+
+    /// Block until any pending background writes have flushed to disk.
+    /// Test-only — production code never needs to wait on persistence.
+    func waitForPendingPersist() {
+        persistQueue.sync {}
     }
 
     /// Insert a new item. Returns true if accepted (false if dedup matched the most-recent entry).
@@ -31,7 +38,8 @@ final class ClipboardStore {
                 imageFilename: existing.imageFilename,
                 filePaths: existing.filePaths,
                 hash: existing.hash,
-                pinned: existing.pinned
+                pinned: existing.pinned,
+                sourceBundleID: existing.sourceBundleID
             )
             items.insert(existing, at: 0)
             persist()

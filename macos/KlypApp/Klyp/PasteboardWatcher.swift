@@ -57,6 +57,10 @@ final class PasteboardWatcher {
 
     private func readCurrent() -> ClipboardItem? {
         let types = pasteboard.types ?? []
+        // The frontmost app at change-detection time is the one that just
+        // wrote to the pasteboard (Klyp's polling fires after the change,
+        // and Klyp itself never activates during a read).
+        let source = NSWorkspace.shared.frontmostApplication?.bundleIdentifier
 
         // 1. File URLs (videos, PDFs, anything dragged from Finder).
         if types.contains(.fileURL) {
@@ -66,7 +70,7 @@ final class PasteboardWatcher {
                     ? (paths[0] as NSString).lastPathComponent
                     : "\(paths.count) files"
                 let hash = sha("files:" + paths.joined(separator: "\u{1F}"))
-                return .files(paths, caption: caption, hash: hash)
+                return .files(paths, caption: caption, hash: hash, sourceBundleID: source)
             }
         }
 
@@ -80,7 +84,7 @@ final class PasteboardWatcher {
                     try? data.write(to: url)
                 }
                 let caption = "Image"
-                return .image(filename: filename, caption: caption, hash: hash)
+                return .image(filename: filename, caption: caption, hash: hash, sourceBundleID: source)
             }
         }
 
@@ -89,7 +93,7 @@ final class PasteboardWatcher {
             let plain = pasteboard.string(forType: .string) ?? ""
             if !plain.isEmpty || !rtf.isEmpty {
                 let hash = sha("rtf:" + sha(rtf))
-                return .richText(plain: plain, rtf: rtf, hash: hash)
+                return .richText(plain: plain, rtf: rtf, hash: hash, sourceBundleID: source)
             }
         }
 
@@ -98,14 +102,14 @@ final class PasteboardWatcher {
            let urls = pasteboard.readObjects(forClasses: [NSURL.self]) as? [URL],
            let first = urls.first {
             let s = first.absoluteString
-            return .url(s, hash: sha("url:" + s))
+            return .url(s, hash: sha("url:" + s), sourceBundleID: source)
         }
 
         // 5. Plain text (last because most types include it as fallback).
         if let s = pasteboard.string(forType: .string) {
             let trimmed = s.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !trimmed.isEmpty else { return nil }
-            return .text(s, hash: sha("text:" + s))
+            return .text(s, hash: sha("text:" + s), sourceBundleID: source)
         }
 
         return nil

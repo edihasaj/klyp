@@ -60,4 +60,51 @@ final class ClipboardStoreTests: XCTestCase {
         XCTAssertEqual(store.items.count, 1)
         XCTAssertEqual(store.items.first?.text, "pin")
     }
+
+    // MARK: - Persistence across restart
+
+    func testPinnedItemsPersistAcrossRestart() {
+        let file = FileManager.default.temporaryDirectory
+            .appendingPathComponent("klyp-pin-persist-\(UUID().uuidString).json")
+        defer { try? FileManager.default.removeItem(at: file) }
+
+        // First "session": insert two items, pin one, let evictions push past
+        // the cap so the pin must survive on its own merits.
+        do {
+            let store = ClipboardStore(maxItems: 2, fileURL: file)
+            store.insert(ClipboardItem.text("keepme", hash: "k"))
+            store.togglePin(id: store.items[0].id)
+            store.insert(ClipboardItem.text("noise-a", hash: "a"))
+            store.insert(ClipboardItem.text("noise-b", hash: "b"))
+            store.insert(ClipboardItem.text("noise-c", hash: "c"))
+            store.waitForPendingPersist()
+        }
+
+        // Second "session": fresh store off the same file. The pinned item
+        // must be there with its pin flag intact.
+        let reopened = ClipboardStore(maxItems: 2, fileURL: file)
+        XCTAssertTrue(
+            reopened.items.contains { $0.text == "keepme" && $0.pinned },
+            "Pinned item must survive a restart with its pin flag set."
+        )
+    }
+
+    func testTogglingUnpinPersists() {
+        let file = FileManager.default.temporaryDirectory
+            .appendingPathComponent("klyp-pin-toggle-\(UUID().uuidString).json")
+        defer { try? FileManager.default.removeItem(at: file) }
+
+        do {
+            let store = ClipboardStore(maxItems: 5, fileURL: file)
+            store.insert(ClipboardItem.text("x", hash: "x"))
+            let id = store.items[0].id
+            store.togglePin(id: id)
+            store.togglePin(id: id) // unpin again
+            store.waitForPendingPersist()
+        }
+
+        let reopened = ClipboardStore(maxItems: 5, fileURL: file)
+        XCTAssertEqual(reopened.items.first?.pinned, false,
+                       "Unpinning must persist — not silently re-pin on reload.")
+    }
 }

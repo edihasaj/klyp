@@ -28,16 +28,28 @@ enum Paster {
         guard item.kind == .text else { return item }
         let settings = TrimSettings.load()
         let bundleID = targetBundleID ?? TerminalApps.frontmostBundleID()
-        let isTerm = TerminalApps.isTerminal(bundleID: bundleID)
-        let level = settings.aggressiveness(forTerminal: isTerm)
+        let isTermTarget = TerminalApps.isTerminal(bundleID: bundleID)
+        let isTermSource = TerminalApps.isTerminal(bundleID: item.sourceBundleID)
+        let level = settings.aggressiveness(forTerminal: isTermTarget)
         // Markdown extraction is terminal-only — stripping fences/indent from a
         // paste into TextEdit or a chat box would destroy formatting the user
         // wanted.
-        let extracted = (settings.extractMarkdown && isTerm)
+        let extracted = (settings.extractMarkdown && isTermTarget)
             ? MarkdownExtractor.extract(item.text)
             : nil
 
-        guard level != .off || extracted != nil else { return item }
+        // Soft-wrap collapse runs when the source app was a terminal and the
+        // user has terminal trim enabled (master toggle on, terminal level
+        // not .off). Wrap newlines from a narrow ghostty window are unwanted
+        // in any paste target — but skipped when pasting back into a
+        // terminal, since the user pulled multi-line content out for a
+        // reason and re-flattening it on re-entry would be surprising.
+        let runCollapser = settings.enabled
+            && settings.terminalLevel != .off
+            && isTermSource
+            && !isTermTarget
+
+        guard level != .off || extracted != nil || runCollapser else { return item }
 
         var text = extracted ?? item.text
         if level != .off {
@@ -50,6 +62,9 @@ enum Paster {
                 text = flat
             }
         }
+        if runCollapser, let collapsed = SoftWrapCollapser().collapseIfSoftWrapped(text) {
+            text = collapsed
+        }
         guard text != item.text else { return item }
 
         return ClipboardItem(
@@ -61,7 +76,8 @@ enum Paster {
             imageFilename: item.imageFilename,
             filePaths: item.filePaths,
             hash: item.hash,
-            pinned: item.pinned
+            pinned: item.pinned,
+            sourceBundleID: item.sourceBundleID
         )
     }
 
