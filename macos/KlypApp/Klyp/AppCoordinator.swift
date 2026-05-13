@@ -26,6 +26,7 @@ final class AppCoordinator {
     }
 
     func bootstrap() {
+        Self.logBundleHealth()
         watcher.start()
         menuBar = MenuBarController(coordinator: self)
         HotkeyManager.shared.register(
@@ -38,6 +39,18 @@ final class AppCoordinator {
 
     func close() {
         menuBar?.close()
+    }
+
+    /// Emit one diagnostic line at launch describing the running bundle's path
+    /// and quarantine state. A `com.apple.quarantine` xattr on an installed
+    /// Klyp.app together with a Gatekeeper rejection is what produces the
+    /// "Klyp is damaged — Move to Trash" dialog on a later restart; logging it
+    /// once means the next time it happens we can read the cause from Console
+    /// instead of guessing.
+    private static func logBundleHealth() {
+        let url = Bundle.main.bundleURL
+        let quarantined = (try? url.resourceValues(forKeys: [.quarantinePropertiesKey]).quarantineProperties) != nil
+        NSLog("[Klyp] launched from %@ quarantine=%@", url.path, quarantined ? "yes" : "no")
     }
 
     func paste(_ item: ClipboardItem, forceRaw: Bool = false) {

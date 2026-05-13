@@ -5,6 +5,11 @@ set -euo pipefail
 # Usage:        ./scripts/build-app.sh
 # Signed build: KLYP_SIGN_IDENTITY="Developer ID Application: …" ./scripts/build-app.sh
 # Notarize:     KLYP_NOTARY_PROFILE=AC_PASSWORD ./scripts/build-app.sh
+#
+# A release is considered shippable only when the resulting zip is both signed
+# with Developer ID *and* stapled by notarytool. Any other combination is a
+# dev/local build and is marked as such so it can't be uploaded by mistake.
+# Bypass the gate locally with KLYP_ALLOW_UNSIGNED=1 (CI must never set this).
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 APPDIR="$ROOT/macos/KlypApp"
 DIST="$ROOT/dist"
@@ -50,6 +55,39 @@ if [[ -n "${KLYP_NOTARY_PROFILE:-}" ]]; then
   ( cd "$DIST" && rm -f Klyp.app.zip && /usr/bin/ditto -c -k --keepParent Klyp.app Klyp.app.zip )
 fi
 
-shasum -a 256 "$DIST/Klyp.app.zip"
+RELEASE_READY=0
+if [[ "$SIGN_ID" != "-" && -n "${KLYP_NOTARY_PROFILE:-}" ]]; then
+  echo "==> Verifying release artifact is Gatekeeper-acceptable"
+  /usr/bin/xcrun stapler validate "$DIST/Klyp.app"
+  /usr/sbin/spctl --assess --type execute --verbose "$DIST/Klyp.app"
+  RELEASE_READY=1
+fi
+
+if [[ "$RELEASE_READY" -eq 0 ]]; then
+  if [[ "${KLYP_ALLOW_UNSIGNED:-0}" != "1" ]]; then
+    echo "==> Marking dist artifact as DEV-ONLY (not signed+notarized)"
+    mv "$DIST/Klyp.app.zip" "$DIST/Klyp.app.DEV.zip"
+    cat >"$DIST/DO_NOT_PUBLISH.txt" <<'EOF'
+This build is not signed with Developer ID and stapled with notarytool.
+Shipping it to users will cause macOS Gatekeeper to flag the app as damaged
+on a future restart and prompt "Move to Trash" — exactly the regression we
+fixed in 0.1.9. Do NOT upload Klyp.app.DEV.zip to GitHub Releases or the
+Homebrew cask.
+
+To produce a shippable build:
+  KLYP_SIGN_IDENTITY="Developer ID Application: …" \
+  KLYP_NOTARY_PROFILE=AC_PASSWORD \
+  ./scripts/build-app.sh
+EOF
+  else
+    echo "==> KLYP_ALLOW_UNSIGNED=1 set — leaving zip as-is. Do not publish."
+  fi
+fi
+
+shasum -a 256 "$DIST"/Klyp.app*.zip
 echo
-echo "✅ Built $DIST/Klyp.app"
+if [[ "$RELEASE_READY" -eq 1 ]]; then
+  echo "✅ Built notarized $DIST/Klyp.app — safe to publish."
+else
+  echo "⚠️  Built unsigned $DIST/Klyp.app — DEV ONLY, do not publish."
+fi
