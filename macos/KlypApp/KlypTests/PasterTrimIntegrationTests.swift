@@ -216,6 +216,86 @@ final class PasterTrimIntegrationTests: XCTestCase {
         XCTAssertEqual(out.text, input, "terminalLevel = .off must disable soft-wrap collapse.")
     }
 
+    func testClaudeCodeReplyStripsGutterAndCollapsesWraps() {
+        // Real-world case: copying a Claude Code reply out of a narrow
+        // Ghostty window. Status bullet + blockquote gutter on every line,
+        // plus soft-wrap newlines mid-sentence. Should come out as clean
+        // paragraphs ready to paste into a chat box.
+        let input = """
+        ⏺ Here's a draft reply:
+
+          ▎ Thanks for reaching out. Before setting up a private disclosure
+          ▎ channel, I'd like to validate the report.
+          ▎
+          ▎ If the concern is purely defense in depth, that's fair to discuss
+          ▎ in the open as a hardening issue rather than a security advisory.
+        """
+        let expected = """
+        Here's a draft reply:
+
+        Thanks for reaching out. Before setting up a private disclosure channel, I'd like to validate the report.
+
+        If the concern is purely defense in depth, that's fair to discuss in the open as a hardening issue rather than a security advisory.
+        """
+        let item = makeItem(input, sourceBundleID: ghostty)
+        let out = Paster.applyTrim(item, targetBundleID: textEdit)
+        XCTAssertEqual(out.text, expected)
+    }
+
+    func testGitLogGraphFromTerminalNotCorrupted() {
+        // git log --graph uses │ ╱ ╲ glyphs that are NOT in the TUI gutter
+        // set. The stripper must leave them alone so the graph survives.
+        let input = """
+        * 7c1bf2b chore: bump cask
+        │ * abc1234 feat: new thing
+        │/
+        * 549cf06 feat: collapse terminal soft-wrap on paste into chat
+        """
+        let item = makeItem(input, sourceBundleID: ghostty)
+        let out = Paster.applyTrim(item, targetBundleID: textEdit)
+        XCTAssertEqual(out.text, input,
+                       "git log --graph output must survive the trim pipeline unchanged.")
+    }
+
+    func testTreeOutputFromTerminalNotCorrupted() {
+        let input = """
+        src
+        ├── foo
+        │   └── bar.swift
+        └── baz.swift
+        """
+        let item = makeItem(input, sourceBundleID: ghostty)
+        let out = Paster.applyTrim(item, targetBundleID: textEdit)
+        XCTAssertEqual(out.text, input)
+    }
+
+    func testGutterStripRespectsTerminalLevelOff() {
+        UserDefaults.standard.set(Aggressiveness.off.rawValue, forKey: TrimSettings.Keys.terminalLevel)
+        let input = """
+          ▎ first line of a wrapped quote
+          ▎ second line continues the quote
+        """
+        let item = makeItem(input, sourceBundleID: ghostty)
+        let out = Paster.applyTrim(item, targetBundleID: textEdit)
+        XCTAssertEqual(out.text, input,
+                       "terminalLevel = .off must disable gutter stripping.")
+    }
+
+    func testGutterStripSkippedWhenPastingBackIntoTerminal() {
+        // User pulled a multi-line quote out of a TUI for a reason. The
+        // gutter glyphs must survive on re-entry into the terminal —
+        // disable markdown extraction so only the new terminal-source
+        // pipeline (gutter strip + soft-wrap collapse) is under test.
+        UserDefaults.standard.set(false, forKey: TrimSettings.Keys.extractMarkdown)
+        let input = """
+          ▎ first line of a wrapped quote
+          ▎ second line continues the quote
+        """
+        let item = makeItem(input, sourceBundleID: ghostty)
+        let out = Paster.applyTrim(item, targetBundleID: ghostty)
+        XCTAssertEqual(out.text, input)
+    }
+
     func testNonTerminalSourceLeavesWrappedTextAlone() {
         // Same wrapped shape but copied from a non-terminal — could be
         // intentional formatting (poetry, formatted prose). Don't touch.

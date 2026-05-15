@@ -38,18 +38,19 @@ enum Paster {
             ? MarkdownExtractor.extract(item.text)
             : nil
 
-        // Soft-wrap collapse runs when the source app was a terminal and the
-        // user has terminal trim enabled (master toggle on, terminal level
-        // not .off). Wrap newlines from a narrow ghostty window are unwanted
-        // in any paste target — but skipped when pasting back into a
-        // terminal, since the user pulled multi-line content out for a
-        // reason and re-flattening it on re-entry would be surprising.
-        let runCollapser = settings.enabled
+        // Terminal-source cleanup runs when the source app was a terminal
+        // and the user has terminal trim enabled (master toggle on, terminal
+        // level not .off). Gutter glyphs and soft-wrap newlines from a
+        // narrow Ghostty window are unwanted in any paste target — but
+        // skipped when pasting back into a terminal, since the user pulled
+        // multi-line content out for a reason and re-flattening it on
+        // re-entry would be surprising.
+        let runTerminalUnwrap = settings.enabled
             && settings.terminalLevel != .off
             && isTermSource
             && !isTermTarget
 
-        guard level != .off || extracted != nil || runCollapser else { return item }
+        guard level != .off || extracted != nil || runTerminalUnwrap else { return item }
 
         var text = extracted ?? item.text
         if level != .off {
@@ -62,8 +63,13 @@ enum Paster {
                 text = flat
             }
         }
-        if runCollapser, let collapsed = SoftWrapCollapser().collapseIfSoftWrapped(text) {
-            text = collapsed
+        if runTerminalUnwrap {
+            if let stripped = TUIGutterStripper().stripIfGuttered(text) {
+                text = stripped
+            }
+            if let collapsed = SoftWrapCollapser().collapseIfSoftWrapped(text) {
+                text = collapsed
+            }
         }
         guard text != item.text else { return item }
 

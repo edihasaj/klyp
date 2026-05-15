@@ -6,6 +6,20 @@ All notable changes to Klyp will be documented in this file. The format follows
 
 ## [Unreleased]
 
+## [0.1.11] - 2026-05-15
+
+### Added
+- **TUI gutter stripping on paste.** When you copy a reply out of a TUI
+  agent (Claude Code, Codex CLI, etc.), Klyp now strips the decorative
+  status bullet (`⏺`), blockquote bar (`▎`), and tool-result marker (`⎿`)
+  before handing the text to the existing soft-wrap collapse. The result
+  is clean paragraphs ready to paste into a chat box or PR comment.
+  Conservative by design: requires the same gutter glyph on at least two
+  lines, gated on the master trim toggle + `Terminal aggressiveness ≠
+  Off`, and only fires when the source was a terminal and the target
+  isn't. Box-drawing characters (`│ ┃ ├ └`) are deliberately excluded so
+  `git log --graph`, `tree`, and framed table output survive intact.
+
 ## [0.1.10] - 2026-05-14
 
 ### Added
