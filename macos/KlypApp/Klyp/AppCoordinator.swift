@@ -27,6 +27,7 @@ final class AppCoordinator {
 
     func bootstrap() {
         Self.logBundleHealth()
+        LoginItem.seedFirstRunIfNeeded()
         watcher.start()
         menuBar = MenuBarController(coordinator: self)
         HotkeyManager.shared.register(

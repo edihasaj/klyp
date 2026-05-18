@@ -6,6 +6,20 @@ All notable changes to Klyp will be documented in this file. The format follows
 
 ## [Unreleased]
 
+## [0.1.12] - 2026-05-18
+
+### Fixed
+- **Launch at login by default.** Klyp is a menu-bar utility — useless if it
+  doesn't survive a reboot. On first run we now register the app as a login
+  item automatically. Toggling Settings → Launch at login off still sticks
+  across upgrades (guarded by a one-shot `klyp.didSeedLoginItem` flag).
+- **⌃Space registration races.** On a fresh login another process
+  (input-source switcher, Spotlight, Raycast/Alfred) can briefly own
+  ⌃Space, causing `RegisterEventHotKey` to fail silently and Klyp's
+  shortcut to do nothing until the next restart. The Carbon return value
+  is now checked and the registration is retried on an exponential
+  back-off (2/4/8/16/32 s) with diagnostic logging.
+
 ## [0.1.11] - 2026-05-15
 
 ### Added
