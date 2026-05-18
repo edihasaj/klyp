@@ -13,7 +13,7 @@ cask "klyp" do
 
   zap trash: [
     "~/Library/Application Support/Klyp",
-    "~/Library/Preferences/com.edihasaj.klyp.plist",
     "~/Library/Caches/com.edihasaj.klyp",
+    "~/Library/Preferences/com.edihasaj.klyp.plist",
   ]
 end
