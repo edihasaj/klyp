@@ -6,6 +6,13 @@ All notable changes to Klyp will be documented in this file. The format follows
 
 ## [Unreleased]
 
+## [0.1.13] - 2026-06-09
+
+### Added
+- **Menu bar feedback.** The tray icon now tints on hover and flashes a
+  short pressed state when clicked, so closing the popover gives immediate
+  visual confirmation instead of feeling like the click disappeared.
+
 ## [0.1.12] - 2026-05-18
 
 ### Fixed

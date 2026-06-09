@@ -9,6 +9,10 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
     private let popover: NSPopover
     private weak var coordinator: AppCoordinator?
     private var transientCloseMonitor: Any?
+    private var buttonTrackingArea: NSTrackingArea?
+    private var isButtonHovered = false
+    private var isButtonPressed = false
+    private var clickFeedbackWorkItem: DispatchWorkItem?
 
     init(coordinator: AppCoordinator) {
         self.coordinator = coordinator
@@ -21,6 +25,8 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
             button.target = self
             button.action = #selector(handleClick(_:))
             button.sendAction(on: [.leftMouseUp, .rightMouseUp])
+            button.wantsLayer = true
+            installButtonTracking(on: button)
         }
 
         popover.behavior = .transient
@@ -40,6 +46,7 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
             showContextMenu(sender)
             return
         }
+        flashClickFeedback(on: sender)
         toggle()
     }
 
@@ -60,7 +67,7 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
             coordinator?.previousFrontmostBundleID = prior
         }
         NSApp.activate(ignoringOtherApps: true)
-        button.image = Self.menuBarIcon(active: true)
+        updateStatusButtonImage()
         popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
         installCloseMonitor()
     }
@@ -73,7 +80,7 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
     /// Stack-of-cards mark, drawn programmatically so it can switch between a
     /// menu-bar template (auto-tints to white in dark menu bar / black in light)
     /// and a brand-pink "active" version when the popover is showing.
-    static func menuBarIcon(active: Bool) -> NSImage {
+    static func menuBarIcon(active: Bool, hovered: Bool = false, pressed: Bool = false) -> NSImage {
         let size: CGFloat = 18
         let image = NSImage(size: NSSize(width: size, height: size), flipped: false) { _ in
             guard let ctx = NSGraphicsContext.current?.cgContext else { return false }
@@ -85,6 +92,10 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
             let corner = s * 0.13
 
             let activeColor = CGColor(red: 1.0, green: 0.42, blue: 0.62, alpha: 1.0)
+            let hoverColor = CGColor(red: 1.0, green: 0.52, blue: 0.70, alpha: 1.0)
+            let pressedColor = CGColor(red: 1.0, green: 0.72, blue: 0.82, alpha: 1.0)
+            let tintColor = pressed ? pressedColor : (active ? activeColor : hoverColor)
+            let opacityScale: CGFloat = pressed ? 1.0 : (active ? 1.0 : 0.72)
             let layers: [(dx: CGFloat, dy: CGFloat, alpha: CGFloat)] = [
                 (-s * 0.10, -s * 0.10, 0.45),
                 (0, 0, 0.75),
@@ -97,10 +108,10 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
                     y: cy - cardH / 2 + layer.dy,
                     width: cardW, height: cardH
                 )
-                if active {
+                if active || hovered || pressed {
                     var (r, g, b, a) = (CGFloat(0), CGFloat(0), CGFloat(0), CGFloat(0))
-                    NSColor(cgColor: activeColor)?.getRed(&r, green: &g, blue: &b, alpha: &a)
-                    ctx.setFillColor(red: r, green: g, blue: b, alpha: layer.alpha)
+                    NSColor(cgColor: tintColor)?.getRed(&r, green: &g, blue: &b, alpha: &a)
+                    ctx.setFillColor(red: r, green: g, blue: b, alpha: layer.alpha * opacityScale)
                 } else {
                     ctx.setFillColor(CGColor(gray: 0, alpha: layer.alpha))
                 }
@@ -112,8 +123,65 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
             }
             return true
         }
-        image.isTemplate = !active
+        image.isTemplate = !(active || hovered || pressed)
         return image
+    }
+
+    private func installButtonTracking(on button: NSStatusBarButton) {
+        if let buttonTrackingArea {
+            button.removeTrackingArea(buttonTrackingArea)
+        }
+        let area = NSTrackingArea(
+            rect: .zero,
+            options: [.activeAlways, .inVisibleRect, .mouseEnteredAndExited],
+            owner: self,
+            userInfo: nil
+        )
+        button.addTrackingArea(area)
+        buttonTrackingArea = area
+    }
+
+    @objc func mouseEntered(with event: NSEvent) {
+        isButtonHovered = true
+        updateStatusButtonImage()
+    }
+
+    @objc func mouseExited(with event: NSEvent) {
+        isButtonHovered = false
+        updateStatusButtonImage()
+    }
+
+    private func flashClickFeedback(on button: NSStatusBarButton) {
+        clickFeedbackWorkItem?.cancel()
+        isButtonPressed = true
+        updateStatusButtonImage()
+
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 0.07
+            context.timingFunction = CAMediaTimingFunction(name: .easeOut)
+            button.animator().alphaValue = 0.58
+        } completionHandler: {
+            NSAnimationContext.runAnimationGroup { context in
+                context.duration = 0.12
+                context.timingFunction = CAMediaTimingFunction(name: .easeOut)
+                button.animator().alphaValue = 1.0
+            }
+        }
+
+        let workItem = DispatchWorkItem { [weak self] in
+            self?.isButtonPressed = false
+            self?.updateStatusButtonImage()
+        }
+        clickFeedbackWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.16, execute: workItem)
+    }
+
+    private func updateStatusButtonImage() {
+        statusItem.button?.image = Self.menuBarIcon(
+            active: popover.isShown,
+            hovered: isButtonHovered,
+            pressed: isButtonPressed
+        )
     }
 
     private func showContextMenu(_ sender: NSStatusBarButton) {
@@ -157,7 +225,7 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
     nonisolated func popoverDidClose(_ notification: Notification) {
         Task { @MainActor in
             self.removeCloseMonitor()
-            self.statusItem.button?.image = Self.menuBarIcon(active: false)
+            self.updateStatusButtonImage()
         }
     }
 }
