@@ -161,10 +161,12 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
             context.timingFunction = CAMediaTimingFunction(name: .easeOut)
             button.animator().alphaValue = 0.58
         } completionHandler: {
-            NSAnimationContext.runAnimationGroup { context in
-                context.duration = 0.12
-                context.timingFunction = CAMediaTimingFunction(name: .easeOut)
-                button.animator().alphaValue = 1.0
+            Task { @MainActor in
+                NSAnimationContext.runAnimationGroup { context in
+                    context.duration = 0.12
+                    context.timingFunction = CAMediaTimingFunction(name: .easeOut)
+                    button.animator().alphaValue = 1.0
+                }
             }
         }
 

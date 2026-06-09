@@ -6,6 +6,13 @@ All notable changes to Klyp will be documented in this file. The format follows
 
 ## [Unreleased]
 
+## [0.1.14] - 2026-06-09
+
+### Fixed
+- **Clip row click feedback.** Clicking a previous clip now visibly selects
+  the row before the popover closes and paste runs, matching the feedback you
+  already get when moving through clips with the arrow keys.
+
 ## [0.1.13] - 2026-06-09
 
 ### Added

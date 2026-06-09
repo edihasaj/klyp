@@ -6,6 +6,7 @@ struct HistoryView: View {
     @Environment(AppCoordinator.self) private var coordinator
     @State private var query: String = ""
     @State private var selection: Int = 0
+    @State private var pendingClickPasteID: UUID?
     @FocusState private var searchFocused: Bool
 
     var body: some View {
@@ -86,9 +87,9 @@ struct HistoryView: View {
                             HistoryRowView(
                                 item: item,
                                 index: index,
-                                isSelected: index == selection,
-                                onPaste: { pasteItem(item) },
-                                onPasteRaw: { pasteItem(item, forceRaw: true) },
+                                isSelected: index == selection || pendingClickPasteID == item.id,
+                                onPaste: { pasteItem(item, selectionIndex: index, showClickFeedback: true) },
+                                onPasteRaw: { pasteItem(item, forceRaw: true, selectionIndex: index, showClickFeedback: true) },
                                 onPin: { store.togglePin(id: item.id) },
                                 onDelete: { store.delete(id: item.id) }
                             )
@@ -166,8 +167,31 @@ struct HistoryView: View {
         pasteItem(filtered[selection])
     }
 
-    private func pasteItem(_ item: ClipboardItem, forceRaw: Bool = false) {
+    private func pasteItem(
+        _ item: ClipboardItem,
+        forceRaw: Bool = false,
+        selectionIndex: Int? = nil,
+        showClickFeedback: Bool = false
+    ) {
         let optionHeld = NSEvent.modifierFlags.contains(.option)
-        coordinator.paste(item, forceRaw: forceRaw || optionHeld)
+        let pasteRaw = forceRaw || optionHeld
+
+        guard showClickFeedback else {
+            coordinator.paste(item, forceRaw: pasteRaw)
+            return
+        }
+
+        pendingClickPasteID = item.id
+        if let selectionIndex {
+            withAnimation(.easeOut(duration: 0.08)) {
+                selection = selectionIndex
+            }
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.09) {
+            guard pendingClickPasteID == item.id else { return }
+            pendingClickPasteID = nil
+            coordinator.paste(item, forceRaw: pasteRaw)
+        }
     }
 }
