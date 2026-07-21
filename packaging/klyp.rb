@@ -4,10 +4,10 @@ cask "klyp" do
 
   url "https://github.com/edihasaj/klyp/releases/download/v#{version}/Klyp.app.zip"
   name "Klyp"
-  desc "Lightweight clipboard history manager for macOS"
+  desc "Lightweight clipboard history manager"
   homepage "https://github.com/edihasaj/klyp"
 
-  depends_on macos: ">= :sonoma"
+  depends_on macos: :sonoma
 
   app "Klyp.app"
 
