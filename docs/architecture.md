@@ -22,6 +22,55 @@ KlypApp.swift              — @main entry; installs AppDelegate; Settings scene
 - `files` — file:// URLs (videos, PDFs, anything Finder copies).
 - `url` — when the pasteboard advertises `.URL` (typed-link copy).
 
+## Paste modes
+
+`PasteMode` (in `Paster.swift`) selects what happens on the way back to the
+pasteboard. Precedence when a modifier is held: ⌥ beats ⇧.
+
+| Mode       | Trigger              | Transform |
+| ---------- | -------------------- | --------- |
+| `smart`    | `↵` / click          | Heuristic pipeline gated by `TrimSettings`: `MarkdownExtractor` → `CommandTrimmer` → (terminal source only) `TUIGutterStripper` → `SoftWrapCollapser`. Every stage may decline. |
+| `plain`    | `⇧↵` / context menu  | `PlainTextNormalizer` — unconditional. Ignores trim settings and both bundle IDs, and drops RTF so the paste lands unstyled. |
+| `unstyled` | `⌃↵`, `⌃⇧V` global  | Drops the RTF payload only. Characters, indentation and line breaks are untouched — for code copied out of an editor that ships syntax colors in the rich-text flavor. |
+| `original` | `⌥↵` / context menu  | None; the stored bytes. |
+
+`⌃⇧V` pastes the newest item without opening the popover. Because the user is
+still holding `⌃⇧` when it fires, `Paster.whenModifiersReleased` polls until no
+modifier is physically down (600 ms cap) before synthesizing `⌘V` — otherwise
+the target app receives `⌃⇧⌘V`.
+
+## Global hotkeys
+
+`HotkeyManager` owns every Carbon binding (`DefaultHotkey.toggle`,
+`DefaultHotkey.pasteUnstyled`) behind one installed event handler, dispatching
+on `EventHotKeyID.id`.
+
+Registration is treated as revocable, not one-shot. Another app can claim the
+shortcut minutes or hours after login, and a hot-key ref can survive a
+sleep/wake cycle as a non-nil pointer that no longer delivers events — both
+present identically to the user as "the shortcut does nothing". So:
+
+- failed registrations retry forever on a capped back-off (2/4/8/16/32/60 s)
+  rather than giving up after five attempts;
+- every binding is force re-registered (unregister → register) on
+  `didWake`, `screensDidWake`, `sessionDidBecomeActive` and the distributed
+  `com.apple.screenIsUnlocked` notification.
+
+Registration outcomes are logged with the binding label, so `log show
+--predicate 'process == "Klyp"' | grep Hotkey` tells you the current state.
+
+`PlainTextNormalizer` is the deliberate counterweight to the heuristic path:
+because the user asked for it explicitly, it never bails out. It strips leading
+gutter runs (TUI glyphs `⏺ ⎿` and vertical bars `│ ▎ ┃ …`), removes indentation,
+collapses interior whitespace runs, and rejoins consecutive lines — which is
+what undoes the hard newlines a narrow terminal inserted at its wrap column.
+
+Structure is preserved by lookahead rather than by bailing out on the whole
+input: blank lines separate paragraphs, list items / headings / table rows /
+`$ ` prompts stay on their own lines, fenced code blocks pass through verbatim,
+and lines containing tree branches (`└ ├`) are left untouched so `tree` and
+`git log --graph` output survives.
+
 ## Persistence
 
 - `~/Library/Application Support/Klyp/history.json` — full history (items only,

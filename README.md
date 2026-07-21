@@ -23,6 +23,13 @@ CopyClip and CopyClip 2 — but one that doesn't fall over.
   `$`/`#` prompts, box-drawing gutters) are flattened to a single runnable
   line — but only when pasting into a terminal. Markdown, prose, YAML/JSON,
   and code stay intact. Hold `⌥` to paste raw.
+- 🧼 Paste as plain text (`⇧↵`): a deterministic clean-up for text copied out of
+  a narrow TUI — always removes gutter bars (`⏺ ▎ │`), indentation and stray
+  tabs, and rejoins the hard newlines the terminal inserted at the wrap column.
+  Paragraphs, lists, tables and fenced code keep their line breaks.
+- 🎨 Paste without formatting (`⌃⇧V` anywhere, `⌃↵` in the popover): drops the
+  rich-text payload so code copied from VS Code lands without its syntax colors
+  or highlight background — characters, indentation and line breaks untouched.
 - 📥 Markdown-aware terminal paste: pulls commands out of ``` fences and
   de-indents text quoted under a chat bullet, so copying an LLM reply with
   surrounding prose still pastes a clean runnable command.
@@ -62,6 +69,11 @@ Klyp does not phone home. History stays on your machine in
 | Action                       | Shortcut |
 | ---------------------------- | -------- |
 | Toggle Klyp popover          | `⌃Space` |
+| Paste newest, no formatting  | `⌃⇧V`    |
+| Paste selected               | `↵`      |
+| Paste without formatting     | `⌃↵`     |
+| Paste as plain text          | `⇧↵`     |
+| Paste original (no trim)     | `⌥↵`     |
 | Paste item N (in popover)    | `⌘1–9`   |
 | Search                       | type any letter |
 | Clear history                | `⌘⌫`     |

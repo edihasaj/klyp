@@ -1,24 +1,63 @@
 import AppKit
 import Foundation
 
+/// How a stored item is transformed on its way back to the pasteboard.
+enum PasteMode: Sendable {
+    /// Heuristic clean-up per the user's trim settings (plain ↵ / click).
+    case smart
+    /// Deterministic clean-up — always strips gutters/indent and rejoins
+    /// terminal soft-wraps, ignoring trim settings (⇧↵).
+    case plain
+    /// Same characters, no styling: rich text is dropped so the paste picks up
+    /// the destination's own font/color instead of carrying the source's
+    /// highlight background (⌃↵ in the popover, ⌃⇧V globally).
+    case unstyled
+    /// Byte-for-byte what was copied (⌥↵ / "Paste Original").
+    case original
+}
+
 @MainActor
 enum Paster {
     /// Place item back on the pasteboard and synthesize a ⌘V keystroke into the
     /// frontmost app. Returns the new pasteboard changeCount so the watcher can
     /// ignore its own write.
     ///
-    /// `forceRaw` skips smart-trim even when settings would apply it (used by
-    /// the ⌥-held paste and the "Paste Original" context menu item).
     /// `targetBundleID` is the bundle ID of the app the paste will land in,
     /// captured before Klyp activated itself. Falls back to a live lookup
     /// when omitted (e.g. unit tests).
     @discardableResult
-    static func paste(_ item: ClipboardItem, forceRaw: Bool = false, targetBundleID: String? = nil) -> Int {
-        let effective = forceRaw ? item : applyTrim(item, targetBundleID: targetBundleID)
+    static func paste(_ item: ClipboardItem, mode: PasteMode = .smart, targetBundleID: String? = nil) -> Int {
+        let effective: ClipboardItem = switch mode {
+        case .original: item
+        case .plain: plainText(item)
+        case .unstyled: unstyled(item)
+        case .smart: applyTrim(item, targetBundleID: targetBundleID)
+        }
         writeToPasteboard(effective)
         let cc = NSPasteboard.general.changeCount
         synthesizeCommandV()
         return cc
+    }
+
+    /// Deterministic normalization for the "Paste as Plain Text" mode. Runs
+    /// regardless of trim settings or which app is on either end, and drops
+    /// rich-text data so the paste lands as unstyled text.
+    static func plainText(_ item: ClipboardItem) -> ClipboardItem {
+        guard item.kind != .image, item.kind != .files, !item.text.isEmpty else { return item }
+        let text = PlainTextNormalizer.normalize(item.text)
+        guard text != item.text || item.kind != .text else { return item }
+        return ClipboardItem(
+            id: item.id,
+            kind: .text,
+            createdAt: item.createdAt,
+            text: text,
+            rtfData: nil,
+            imageFilename: item.imageFilename,
+            filePaths: item.filePaths,
+            hash: item.hash,
+            pinned: item.pinned,
+            sourceBundleID: item.sourceBundleID
+        )
     }
 
     /// If the item is text and the user's trim settings apply to the target
@@ -85,6 +124,49 @@ enum Paster {
             pinned: item.pinned,
             sourceBundleID: item.sourceBundleID
         )
+    }
+
+    /// Strips styling without touching the characters. VS Code (and any editor
+    /// that offers RTF/HTML flavors) copies syntax colors and a highlight
+    /// background along with the code; dropping the rich-text payload makes the
+    /// paste adopt the destination's formatting instead.
+    static func unstyled(_ item: ClipboardItem) -> ClipboardItem {
+        guard item.kind == .richText || item.kind == .url else { return item }
+        guard !item.text.isEmpty else { return item }
+        return ClipboardItem(
+            id: item.id,
+            kind: .text,
+            createdAt: item.createdAt,
+            text: item.text,
+            rtfData: nil,
+            imageFilename: item.imageFilename,
+            filePaths: item.filePaths,
+            hash: item.hash,
+            pinned: item.pinned,
+            sourceBundleID: item.sourceBundleID
+        )
+    }
+
+    /// Runs `body` once no modifier keys are physically held (or after a short
+    /// timeout). Synthesizing ⌘V while the user still holds ⌃⇧ from the hotkey
+    /// would reach the target app as ⌃⇧⌘V and do nothing — or worse, trigger
+    /// some other shortcut.
+    static func whenModifiersReleased(
+        timeout: TimeInterval = 0.6,
+        pollInterval: TimeInterval = 0.02,
+        _ body: @escaping () -> Void
+    ) {
+        let deadline = Date().addingTimeInterval(timeout)
+        func poll() {
+            let held = NSEvent.modifierFlags
+                .intersection([.control, .shift, .option, .command])
+            if held.isEmpty || Date() >= deadline {
+                body()
+                return
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + pollInterval) { poll() }
+        }
+        poll()
     }
 
     static func writeToPasteboard(_ item: ClipboardItem) {

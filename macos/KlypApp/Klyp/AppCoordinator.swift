@@ -30,11 +30,23 @@ final class AppCoordinator {
         LoginItem.seedFirstRunIfNeeded()
         watcher.start()
         menuBar = MenuBarController(coordinator: self)
-        HotkeyManager.shared.register(
-            keyCode: DefaultHotkey.keyCode,
-            modifiers: DefaultHotkey.modifiers
-        ) { [weak self] in
+        HotkeyManager.shared.register(DefaultHotkey.toggle) { [weak self] in
             self?.menuBar?.toggle()
+        }
+        HotkeyManager.shared.register(DefaultHotkey.pasteUnstyled) { [weak self] in
+            self?.pasteLatestUnstyled()
+        }
+    }
+
+    /// ⌃⇧V — paste the newest clipboard item into the frontmost app with all
+    /// styling stripped (no fonts, colors or highlight backgrounds), without
+    /// opening the popover. Text content itself is untouched.
+    func pasteLatestUnstyled() {
+        guard let item = store.items.max(by: { $0.createdAt < $1.createdAt }) else { return }
+        // Klyp never activated, so the frontmost app is already the target.
+        Paster.whenModifiersReleased { [watcher] in
+            let cc = Paster.paste(item, mode: .unstyled)
+            watcher.ignoreNextChangeCount = cc + 1
         }
     }
 
@@ -54,12 +66,12 @@ final class AppCoordinator {
         NSLog("[Klyp] launched from %@ quarantine=%@", url.path, quarantined ? "yes" : "no")
     }
 
-    func paste(_ item: ClipboardItem, forceRaw: Bool = false) {
+    func paste(_ item: ClipboardItem, mode: PasteMode = .smart) {
         let targetBundleID = previousFrontmostBundleID
         close()
         // Wait briefly for the popover to dismiss so the keystroke goes to the previously frontmost app.
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) { [watcher] in
-            let cc = Paster.paste(item, forceRaw: forceRaw, targetBundleID: targetBundleID)
+            let cc = Paster.paste(item, mode: mode, targetBundleID: targetBundleID)
             watcher.ignoreNextChangeCount = cc + 1
         }
     }

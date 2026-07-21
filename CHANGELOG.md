@@ -6,6 +6,36 @@ All notable changes to Klyp will be documented in this file. The format follows
 
 ## [Unreleased]
 
+## [0.1.15] - 2026-07-21
+
+### Added
+- **Paste as plain text (`⇧↵`).** Smart-trim is heuristic on purpose, so text
+  copied out of a narrow Claude Code / Codex window sometimes kept its gutter
+  bars, its indentation, or the hard newlines the terminal inserted at the wrap
+  column. The new mode — `⇧↵`, or "Paste as Plain Text" in the row's context
+  menu — is deterministic: it always strips leading gutter glyphs (`⏺ ⎿ │ ▎`),
+  indentation and stray tabs, always rejoins soft-wrapped lines, and drops rich
+  text so the paste lands unstyled. Paragraphs, list items, headings, tables,
+  fenced code and `tree` output keep their line breaks. `⌥↵` still pastes the
+  original bytes.
+- **Paste without formatting (`⌃⇧V` globally, `⌃↵` in the popover).** Copying
+  from VS Code (or any editor offering an RTF flavor) carries syntax colors and
+  a highlight background into the destination. This mode drops the rich-text
+  payload and pastes the characters exactly as copied — indentation and line
+  breaks untouched — so the text adopts the destination's own styling. The
+  global `⌃⇧V` pastes the newest clip without opening the popover, and waits
+  for the modifier keys to be released so the synthesized `⌘V` isn't polluted
+  by the still-held `⌃⇧`.
+
+### Fixed
+- **Global hotkeys that stopped working after hours of uptime.** Registration
+  was treated as a launch-time event: five retries over 32 s, then silence. If
+  another app claimed `⌃Space` later, or a sleep/wake cycle invalidated the
+  Carbon hot-key ref, the shortcut died until Klyp was restarted — with no way
+  to tell from the UI. Klyp now retries indefinitely on a capped back-off
+  (2/4/8/16/32/60 s), and force re-registers every binding on wake, screen
+  wake, session activation and screen unlock.
+
 ## [0.1.14] - 2026-06-09
 
 ### Fixed

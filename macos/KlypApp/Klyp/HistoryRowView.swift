@@ -5,6 +5,8 @@ struct HistoryRowView: View {
     let index: Int
     let isSelected: Bool
     let onPaste: () -> Void
+    let onPastePlain: () -> Void
+    let onPasteUnstyled: () -> Void
     let onPasteRaw: () -> Void
     let onPin: () -> Void
     let onDelete: () -> Void
@@ -44,7 +46,9 @@ struct HistoryRowView: View {
         .onTapGesture { onPaste() }
         .contextMenu {
             Button("Paste", action: onPaste)
-            if item.kind == .text {
+            if item.kind != .image && item.kind != .files {
+                Button("Paste without Formatting", action: onPasteUnstyled)
+                Button("Paste as Plain Text", action: onPastePlain)
                 Button("Paste Original", action: onPasteRaw)
             }
             Button(item.pinned ? "Unpin" : "Pin", action: onPin)

@@ -36,6 +36,15 @@ struct HistoryView: View {
                 .onKeyPress(.downArrow) { selection = min(filtered.count - 1, selection + 1); return .handled }
                 .onKeyPress(.escape) { coordinator.close(); return .handled }
                 .onKeyPress(phases: .down) { press in
+                    // ⇧↵ / ⌥↵ — plain ↵ falls through to onSubmit.
+                    if press.key == .return {
+                        let mods = press.modifiers
+                        guard mods.contains(.option) || mods.contains(.shift)
+                            || mods.contains(.control) else { return .ignored }
+                        guard selection < filtered.count else { return .handled }
+                        pasteItem(filtered[selection], mode: Self.mode(for: mods))
+                        return .handled
+                    }
                     guard press.modifiers.contains(.command) else { return .ignored }
                     let chars = press.characters
                     if chars == "p" || chars == "P" {
@@ -89,7 +98,9 @@ struct HistoryView: View {
                                 index: index,
                                 isSelected: index == selection || pendingClickPasteID == item.id,
                                 onPaste: { pasteItem(item, selectionIndex: index, showClickFeedback: true) },
-                                onPasteRaw: { pasteItem(item, forceRaw: true, selectionIndex: index, showClickFeedback: true) },
+                                onPastePlain: { pasteItem(item, mode: .plain, selectionIndex: index, showClickFeedback: true) },
+                                onPasteUnstyled: { pasteItem(item, mode: .unstyled, selectionIndex: index, showClickFeedback: true) },
+                                onPasteRaw: { pasteItem(item, mode: .original, selectionIndex: index, showClickFeedback: true) },
                                 onPin: { store.togglePin(id: item.id) },
                                 onDelete: { store.delete(id: item.id) }
                             )
@@ -112,9 +123,9 @@ struct HistoryView: View {
     private var footer: some View {
         HStack(spacing: 12) {
             footerHint("↵", "Paste")
-            footerHint("⌘1–9", "Quick")
-            footerHint("⌘P", "Pin")
+            footerHint("⇧↵", "Plain")
             footerHint("⌥↵", "Raw")
+            footerHint("⌘1–9", "Quick")
             Spacer()
             Menu {
                 Button("Settings…") { coordinator.openSettings() }
@@ -167,17 +178,19 @@ struct HistoryView: View {
         pasteItem(filtered[selection])
     }
 
+    /// Modifier-aware paste: ⌥ sends the original bytes, ⇧ runs the
+    /// deterministic plain-text clean-up, ⌃ strips styling only, nothing held
+    /// uses smart-trim. An explicit `mode` (context menu) wins over modifiers.
     private func pasteItem(
         _ item: ClipboardItem,
-        forceRaw: Bool = false,
+        mode: PasteMode? = nil,
         selectionIndex: Int? = nil,
         showClickFeedback: Bool = false
     ) {
-        let optionHeld = NSEvent.modifierFlags.contains(.option)
-        let pasteRaw = forceRaw || optionHeld
+        let effectiveMode = mode ?? Self.mode(for: NSEvent.modifierFlags)
 
         guard showClickFeedback else {
-            coordinator.paste(item, forceRaw: pasteRaw)
+            coordinator.paste(item, mode: effectiveMode)
             return
         }
 
@@ -191,7 +204,22 @@ struct HistoryView: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.09) {
             guard pendingClickPasteID == item.id else { return }
             pendingClickPasteID = nil
-            coordinator.paste(item, forceRaw: pasteRaw)
+            coordinator.paste(item, mode: effectiveMode)
         }
+    }
+
+    private static func mode(for flags: NSEvent.ModifierFlags) -> PasteMode {
+        if flags.contains(.option) { return .original }
+        if flags.contains(.shift) { return .plain }
+        if flags.contains(.control) { return .unstyled }
+        return .smart
+    }
+
+    /// Same precedence, for SwiftUI's `KeyPress.modifiers`.
+    private static func mode(for modifiers: EventModifiers) -> PasteMode {
+        if modifiers.contains(.option) { return .original }
+        if modifiers.contains(.shift) { return .plain }
+        if modifiers.contains(.control) { return .unstyled }
+        return .smart
     }
 }

@@ -26,6 +26,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationWillTerminate(_ notification: Notification) {
-        HotkeyManager.shared.unregister()
+        HotkeyManager.shared.unregisterAll()
     }
 }

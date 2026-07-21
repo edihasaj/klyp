@@ -102,7 +102,7 @@ struct SettingsView: View {
             }
 
             Section {
-                Text("Tip: hold ⌥ while pasting to skip the trim and send the original text.")
+                Text("Tip: hold ⇧ while pasting (⇧↵ or the “Paste as Plain Text” menu item) to force a full clean-up — gutter bars, indentation and terminal wrap newlines are always removed, whatever the settings above say. Hold ⌥ to paste the original text untouched.")
                     .font(.callout)
                     .foregroundStyle(.secondary)
             }
@@ -122,9 +122,13 @@ struct SettingsView: View {
         Form {
             Section("Global") {
                 LabeledContent("Toggle Klyp", value: "⌃Space")
+                LabeledContent("Paste newest, no formatting", value: "⌃⇧V")
             }
             Section("In popover") {
                 LabeledContent("Paste selected", value: "↵")
+                LabeledContent("Paste without formatting", value: "⌃↵")
+                LabeledContent("Paste as plain text", value: "⇧↵")
+                LabeledContent("Paste original", value: "⌥↵")
                 LabeledContent("Quick paste 1–9", value: "⌘1 … ⌘9")
                 LabeledContent("Pin/unpin selected", value: "⌘P")
                 LabeledContent("Delete selected", value: "⌫")

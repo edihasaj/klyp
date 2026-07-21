@@ -308,4 +308,130 @@ final class PasterTrimIntegrationTests: XCTestCase {
         let out = Paster.applyTrim(item, targetBundleID: textEdit)
         XCTAssertEqual(out.text, input)
     }
+
+    // MARK: - Plain-text mode (⇧↵)
+
+    func testPlainTextModeIgnoresTrimSettings() {
+        // Master toggle off — smart-trim does nothing, plain mode still cleans.
+        UserDefaults.standard.set(false, forKey: TrimSettings.Keys.enabled)
+        let input = """
+          ▎ a reply the terminal wrapped
+          ▎ across two lines
+        """
+        let item = makeItem(input, sourceBundleID: ghostty)
+        XCTAssertEqual(Paster.applyTrim(item, targetBundleID: textEdit).text, input)
+        XCTAssertEqual(Paster.plainText(item).text, "a reply the terminal wrapped across two lines")
+    }
+
+    func testPlainTextModeCleansTerminalToTerminalPaste() {
+        // Smart-trim deliberately skips the unwrap when pasting back into a
+        // terminal; an explicit plain paste must still clean. Markdown
+        // extraction off so only the unwrap path is under test.
+        UserDefaults.standard.set(false, forKey: TrimSettings.Keys.extractMarkdown)
+        let input = """
+          ▎ first line of a wrapped quote
+          ▎ second line continues the quote
+        """
+        let item = makeItem(input, sourceBundleID: ghostty)
+        XCTAssertEqual(Paster.applyTrim(item, targetBundleID: ghostty).text, input)
+        XCTAssertEqual(
+            Paster.plainText(item).text,
+            "first line of a wrapped quote second line continues the quote"
+        )
+    }
+
+    func testPlainTextModeDropsRichTextAndKeepsIdentity() {
+        let item = ClipboardItem(
+            id: UUID(),
+            kind: .richText,
+            createdAt: Date(),
+            text: "  styled   text  ",
+            rtfData: Data([0x01, 0x02]),
+            imageFilename: nil,
+            filePaths: nil,
+            hash: "h",
+            pinned: true,
+            sourceBundleID: textEdit
+        )
+        let out = Paster.plainText(item)
+        XCTAssertEqual(out.kind, .text)
+        XCTAssertNil(out.rtfData)
+        XCTAssertEqual(out.text, "styled text")
+        XCTAssertEqual(out.id, item.id)
+        XCTAssertTrue(out.pinned)
+    }
+
+    // MARK: - Unstyled mode (⌃↵ / ⌃⇧V)
+
+    func testUnstyledModeDropsRichTextButKeepsCharacters() {
+        // A VS Code copy: syntax colors + highlight background ride along in
+        // the RTF flavor. Characters — including indentation and newlines —
+        // must survive untouched.
+        let code = "func main() {\n    print(\"hi\")\n}"
+        let item = ClipboardItem(
+            id: UUID(),
+            kind: .richText,
+            createdAt: Date(),
+            text: code,
+            rtfData: Data([0x7B, 0x5C, 0x72, 0x74, 0x66]),
+            imageFilename: nil,
+            filePaths: nil,
+            hash: "h",
+            pinned: false,
+            sourceBundleID: "com.microsoft.VSCode"
+        )
+        let out = Paster.unstyled(item)
+        XCTAssertEqual(out.kind, .text)
+        XCTAssertNil(out.rtfData)
+        XCTAssertEqual(out.text, code, "unstyled must not reflow or trim the text")
+    }
+
+    func testUnstyledModeLeavesPlainTextItemUntouched() {
+        let item = makeItem("  keep   my    spacing  ")
+        let out = Paster.unstyled(item)
+        XCTAssertEqual(out.text, "  keep   my    spacing  ")
+        XCTAssertEqual(out.kind, .text)
+    }
+
+    func testUnstyledModeDowngradesURLToText() {
+        var item = makeItem("https://example.com")
+        item = ClipboardItem(
+            id: item.id, kind: .url, createdAt: item.createdAt, text: item.text,
+            rtfData: nil, imageFilename: nil, filePaths: nil, hash: item.hash,
+            pinned: false, sourceBundleID: nil
+        )
+        XCTAssertEqual(Paster.unstyled(item).kind, .text)
+    }
+
+    func testUnstyledModeLeavesImagesAlone() {
+        let item = ClipboardItem(
+            id: UUID(),
+            kind: .image,
+            createdAt: Date(),
+            text: "",
+            rtfData: nil,
+            imageFilename: "a.png",
+            filePaths: nil,
+            hash: "h",
+            pinned: false,
+            sourceBundleID: nil
+        )
+        XCTAssertEqual(Paster.unstyled(item).kind, .image)
+    }
+
+    func testPlainTextModeLeavesNonTextKindsAlone() {
+        let item = ClipboardItem(
+            id: UUID(),
+            kind: .files,
+            createdAt: Date(),
+            text: "/tmp/a.txt",
+            rtfData: nil,
+            imageFilename: nil,
+            filePaths: ["/tmp/a.txt"],
+            hash: "h",
+            pinned: false,
+            sourceBundleID: nil
+        )
+        XCTAssertEqual(Paster.plainText(item).kind, .files)
+    }
 }
