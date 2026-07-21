@@ -42,15 +42,21 @@ Two gotchas:
   (T8J48M4QVY)`, so `codesign` fails with `ambiguous (matches …)`. List them
   with `security find-identity -v -p codesigning`.
 - **The notary profile is per-machine keychain state**, so a fresh Mac has
-  none. Recreate it from the 1Password item `apple id app password -
-  NOTARIZATION` (username + password fields, team `T8J48M4QVY`):
+  none. Everything needed to recreate it lives in the 1Password item
+  **`Klyp Notarization`** (vault `EUnifyer`) — Apple ID, team ID, profile name,
+  signing-cert SHA-1, and an `op://` pointer to the app-specific password,
+  which stays in the shared `apple id app password - NOTARIZATION` item so a
+  rotation there can't leave this one stale. Bootstrap:
 
   ```bash
   xcrun notarytool store-credentials klyp \
-    --apple-id "$(op item get 'apple id app password - NOTARIZATION' --fields label=username --reveal)" \
+    --apple-id "$(op read 'op://EUnifyer/Klyp Notarization/username')" \
     --team-id T8J48M4QVY \
-    --password "$(op item get 'apple id app password - NOTARIZATION' --fields label=password --reveal)"
+    --password "$(op read 'op://EUnifyer/apple id app password - NOTARIZATION/password')"
   ```
+
+  Keep that item's title parenthesis-free — `op read` rejects `(` inside an
+  `op://` secret reference.
 
 ## 3. Tag and publish
 
