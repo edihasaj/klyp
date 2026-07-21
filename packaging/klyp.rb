@@ -1,6 +1,6 @@
 cask "klyp" do
-  version "0.1.14"
-  sha256 "605a8976f8a9fe7f3078f7257149559ea33fce564cac229d5198b3583f875a0e"
+  version "0.1.15"
+  sha256 "03abe86d37a6a32d84ea926f16f49ef9ad88954e2896e9fe6b0438262bc0eae1"
 
   url "https://github.com/edihasaj/klyp/releases/download/v#{version}/Klyp.app.zip"
   name "Klyp"
