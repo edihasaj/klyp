@@ -45,6 +45,11 @@ the target app receives `⌃⇧⌘V`.
 `DefaultHotkey.pasteUnstyled`) behind one installed event handler, dispatching
 on `EventHotKeyID.id`.
 
+When Accessibility access is available, it also installs a session event-tap
+fallback. This covers the macOS failure mode where Carbon reports a successful
+registration but silently stops delivering events. A short per-binding debounce
+prevents both paths from firing the same shortcut twice.
+
 Registration is treated as revocable, not one-shot. Another app can claim the
 shortcut minutes or hours after login, and a hot-key ref can survive a
 sleep/wake cycle as a non-nil pointer that no longer delivers events — both

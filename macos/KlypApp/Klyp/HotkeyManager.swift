@@ -1,5 +1,6 @@
 import AppKit
 import Carbon.HIToolbox
+@preconcurrency import CoreGraphics
 import Foundation
 
 /// One global shortcut Klyp wants to own.
@@ -33,6 +34,9 @@ final class HotkeyManager {
     private var refs: [UInt32: EventHotKeyRef] = [:]
     private var retryAttempts: [UInt32: Int] = [:]
     private var observersInstalled = false
+    private var eventTap: CFMachPort?
+    private var eventTapSource: CFRunLoopSource?
+    private var lastFire: [UInt32: CFAbsoluteTime] = [:]
 
     /// Longest gap between retries. We never give up — an app that stole the
     /// shortcut may quit hours later, and the user shouldn't have to restart
@@ -41,6 +45,7 @@ final class HotkeyManager {
 
     func register(_ binding: HotkeyBinding, onFire: @escaping () -> Void) {
         installEventHandlerIfNeeded()
+        installEventTapIfPossible()
         installSystemObserversIfNeeded()
         bindings[binding.id] = binding
         handlers[binding.id] = onFire
@@ -56,6 +61,7 @@ final class HotkeyManager {
             retryAttempts[id] = 0
             tryRegister(id)
         }
+        installEventTapIfPossible(force: true)
     }
 
     func unregisterAll() {
@@ -63,6 +69,11 @@ final class HotkeyManager {
         if let h = eventHandler { RemoveEventHandler(h); eventHandler = nil }
         bindings.removeAll()
         handlers.removeAll()
+        if let source = eventTapSource {
+            CFRunLoopRemoveSource(CFRunLoopGetMain(), source, .commonModes)
+        }
+        eventTapSource = nil
+        eventTap = nil
     }
 
     // MARK: - Registration
@@ -121,7 +132,78 @@ final class HotkeyManager {
     }
 
     private func fire(_ id: UInt32) {
+        let now = CFAbsoluteTimeGetCurrent()
+        guard now - (lastFire[id] ?? 0) > 0.15 else { return }
+        lastFire[id] = now
         handlers[id]?()
+    }
+
+    /// Carbon can return `noErr` yet stop delivering hot-key events after a
+    /// login-session transition. A session event tap gives us an independent
+    /// delivery path on machines where Klyp already has Accessibility access
+    /// for paste-back. Carbon remains active for first-run toggle support.
+    private func installEventTapIfPossible(force: Bool = false) {
+        if force {
+            if let source = eventTapSource {
+                CFRunLoopRemoveSource(CFRunLoopGetMain(), source, .commonModes)
+            }
+            eventTapSource = nil
+            eventTap = nil
+        } else if let eventTap {
+            CGEvent.tapEnable(tap: eventTap, enable: true)
+            return
+        }
+
+        guard AXIsProcessTrusted() else { return }
+        let mask = CGEventMask(1 << CGEventType.keyDown.rawValue)
+        let userData = Unmanaged.passUnretained(self).toOpaque()
+        guard let tap = CGEvent.tapCreate(
+            tap: .cgSessionEventTap,
+            place: .headInsertEventTap,
+            options: .defaultTap,
+            eventsOfInterest: mask,
+            callback: { _, type, event, userData in
+                guard let userData else { return Unmanaged.passUnretained(event) }
+                let manager = Unmanaged<HotkeyManager>.fromOpaque(userData).takeUnretainedValue()
+                return MainActor.assumeIsolated {
+                    if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
+                        if let tap = manager.eventTap { CGEvent.tapEnable(tap: tap, enable: true) }
+                        return Unmanaged.passUnretained(event)
+                    }
+                    guard type == .keyDown else { return Unmanaged.passUnretained(event) }
+                    guard let id = manager.bindingID(for: event) else {
+                        return Unmanaged.passUnretained(event)
+                    }
+                    manager.fire(id)
+                    return nil
+                }
+            },
+            userInfo: userData
+        ) else {
+            NSLog("[Klyp] Hotkey event-tap fallback unavailable")
+            return
+        }
+        let source = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0)
+        CFRunLoopAddSource(CFRunLoopGetMain(), source, .commonModes)
+        CGEvent.tapEnable(tap: tap, enable: true)
+        eventTap = tap
+        eventTapSource = source
+        NSLog("[Klyp] Hotkey event-tap fallback installed")
+    }
+
+    private func bindingID(for event: CGEvent) -> UInt32? {
+        guard event.getIntegerValueField(.keyboardEventAutorepeat) == 0 else { return nil }
+        let keyCode = UInt32(event.getIntegerValueField(.keyboardEventKeycode))
+        let relevantFlags = event.flags.intersection([.maskControl, .maskShift, .maskAlternate, .maskCommand])
+        return bindings.values.first { binding in
+            guard binding.keyCode == keyCode else { return false }
+            var expected: CGEventFlags = []
+            if binding.modifiers & UInt32(controlKey) != 0 { expected.insert(.maskControl) }
+            if binding.modifiers & UInt32(shiftKey) != 0 { expected.insert(.maskShift) }
+            if binding.modifiers & UInt32(optionKey) != 0 { expected.insert(.maskAlternate) }
+            if binding.modifiers & UInt32(cmdKey) != 0 { expected.insert(.maskCommand) }
+            return relevantFlags == expected
+        }?.id
     }
 
     // MARK: - Self-healing

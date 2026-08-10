@@ -6,6 +6,15 @@ All notable changes to Klyp will be documented in this file. The format follows
 
 ## [Unreleased]
 
+## [0.1.16] - 2026-08-10
+
+### Fixed
+- **Global shortcuts silently failing despite successful registration.** Klyp
+  now uses an Accessibility-backed session event tap as an independent fallback
+  when Carbon reports success but stops delivering shortcut events. The fallback
+  is restored after wake and unlock, automatically re-enabled if macOS disables
+  it, and debounced so both delivery paths cannot trigger the same action twice.
+
 ## [0.1.15] - 2026-07-21
 
 ### Added
