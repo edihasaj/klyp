@@ -31,7 +31,7 @@ final class AppCoordinator {
         watcher.start()
         menuBar = MenuBarController(coordinator: self)
         HotkeyManager.shared.register(DefaultHotkey.toggle) { [weak self] in
-            self?.menuBar?.toggle()
+            self?.menuBar?.toggleAtCursor()
         }
         HotkeyManager.shared.register(DefaultHotkey.pasteUnstyled) { [weak self] in
             self?.pasteLatestUnstyled()

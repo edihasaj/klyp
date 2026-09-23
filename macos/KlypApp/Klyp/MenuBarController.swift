@@ -1,12 +1,12 @@
 import AppKit
 import SwiftUI
 
-/// Owns the NSStatusItem and the popover. Done by hand (not MenuBarExtra) so
-/// the global hotkey can show/hide the popover programmatically.
+/// Presents history from the menu bar or beside the pointer for the hotkey.
 @MainActor
 final class MenuBarController: NSObject, NSPopoverDelegate {
     private let statusItem: NSStatusItem
     private let popover: NSPopover
+    private let cursorPanel: CursorPanel
     private weak var coordinator: AppCoordinator?
     private var transientCloseMonitor: Any?
     private var buttonTrackingArea: NSTrackingArea?
@@ -18,6 +18,12 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
         self.coordinator = coordinator
         self.statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         self.popover = NSPopover()
+        self.cursorPanel = CursorPanel(
+            contentRect: NSRect(origin: .zero, size: NSSize(width: 360, height: 480)),
+            styleMask: [.borderless, .nonactivatingPanel],
+            backing: .buffered,
+            defer: false
+        )
         super.init()
 
         if let button = statusItem.button {
@@ -38,6 +44,20 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
                 .environment(coordinator)
         )
         popover.contentSize = NSSize(width: 360, height: 480)
+
+        cursorPanel.contentViewController = NSHostingController(
+            rootView: HistoryView()
+                .environment(coordinator.store)
+                .environment(coordinator)
+        )
+        cursorPanel.isOpaque = false
+        cursorPanel.backgroundColor = .clear
+        cursorPanel.hasShadow = true
+        cursorPanel.level = .floating
+        cursorPanel.collectionBehavior = [.moveToActiveSpace, .fullScreenAuxiliary]
+        cursorPanel.contentView?.wantsLayer = true
+        cursorPanel.contentView?.layer?.cornerRadius = 12
+        cursorPanel.contentView?.layer?.masksToBounds = true
     }
 
     @objc private func handleClick(_ sender: NSStatusBarButton) {
@@ -47,34 +67,63 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
             return
         }
         flashClickFeedback(on: sender)
-        toggle()
+        toggleMenuBar()
     }
 
-    func toggle() {
+    func toggleMenuBar() {
         if popover.isShown {
             close()
         } else {
-            show()
+            close()
+            showMenuBar()
         }
     }
 
-    func show() {
-        guard let button = statusItem.button else { return }
-        // Snapshot the app that's frontmost *before* we activate Klyp — paste
-        // time uses this to decide whether the target app is a terminal.
+    func toggleAtCursor() {
+        if cursorPanel.isVisible || popover.isShown {
+            close()
+        } else {
+            showAtCursor()
+        }
+    }
+
+    private func rememberFrontmostApp() {
         let prior = NSWorkspace.shared.frontmostApplication?.bundleIdentifier
         if prior != Bundle.main.bundleIdentifier {
             coordinator?.previousFrontmostBundleID = prior
         }
+    }
+
+    private func showMenuBar() {
+        guard let button = statusItem.button else { return }
+        // Snapshot the app that's frontmost *before* we activate Klyp — paste
+        // time uses this to decide whether the target app is a terminal.
+        rememberFrontmostApp()
         NSApp.activate(ignoringOtherApps: true)
         updateStatusButtonImage()
         popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
         installCloseMonitor()
     }
 
+    private func showAtCursor() {
+        rememberFrontmostApp()
+        let pointer = NSEvent.mouseLocation
+        let screen = NSScreen.screens.first { $0.frame.contains(pointer) } ?? NSScreen.main
+        guard let screen else { return }
+        let origin = CursorPanel.origin(
+            near: pointer, size: cursorPanel.frame.size, visibleFrame: screen.visibleFrame
+        )
+        cursorPanel.setFrameOrigin(origin)
+        cursorPanel.makeKeyAndOrderFront(nil)
+        updateStatusButtonImage()
+        installCloseMonitor()
+    }
+
     func close() {
         popover.performClose(nil)
+        cursorPanel.orderOut(nil)
         removeCloseMonitor()
+        updateStatusButtonImage()
     }
 
     /// Stack-of-cards mark, drawn programmatically so it can switch between a
@@ -180,7 +229,7 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
 
     private func updateStatusButtonImage() {
         statusItem.button?.image = Self.menuBarIcon(
-            active: popover.isShown,
+            active: popover.isShown || cursorPanel.isVisible,
             hovered: isButtonHovered,
             pressed: isButtonPressed
         )
@@ -203,7 +252,7 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
         statusItem.menu = nil // restore default click behavior next time
     }
 
-    @objc private func toggleFromMenu() { toggle() }
+    @objc private func toggleFromMenu() { toggleMenuBar() }
     @objc private func openSettings() { coordinator?.openSettings() }
     @objc private func openAbout() { coordinator?.openAbout() }
     @objc private func quit() { NSApp.terminate(nil) }
@@ -229,5 +278,26 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
             self.removeCloseMonitor()
             self.updateStatusButtonImage()
         }
+    }
+}
+
+/// A nonactivating panel accepts search keystrokes while the destination app
+/// stays active, so closing it returns keyboard focus to the paste target.
+@MainActor
+final class CursorPanel: NSPanel {
+    override var canBecomeKey: Bool { true }
+
+    static func origin(near pointer: NSPoint, size: NSSize, visibleFrame: NSRect) -> NSPoint {
+        let gap: CGFloat = 12
+        let preferredX = pointer.x + gap
+        let preferredY = pointer.y - size.height - gap
+        let x = preferredX + size.width > visibleFrame.maxX
+            ? pointer.x - size.width - gap : preferredX
+        let y = preferredY < visibleFrame.minY
+            ? pointer.y + gap : preferredY
+        return NSPoint(
+            x: min(max(x, visibleFrame.minX), max(visibleFrame.minX, visibleFrame.maxX - size.width)),
+            y: min(max(y, visibleFrame.minY), max(visibleFrame.minY, visibleFrame.maxY - size.height))
+        )
     }
 }
