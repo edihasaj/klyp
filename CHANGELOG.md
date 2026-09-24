@@ -6,6 +6,12 @@ All notable changes to Klyp will be documented in this file. The format follows
 
 ## [Unreleased]
 
+## [0.1.21] - 2026-09-24
+
+### Fixed
+- History rows now receive mouse clicks in the cursor picker. Selecting a row
+  shows its pressed state, then restores the clip and pastes it.
+
 ## [0.1.20] - 2026-09-24
 
 ### Changed

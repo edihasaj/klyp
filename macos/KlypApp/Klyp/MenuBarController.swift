@@ -53,7 +53,7 @@ final class MenuBarController: NSResponder, NSPopoverDelegate {
         cursorAnchorWindow.isOpaque = false
         cursorAnchorWindow.backgroundColor = .clear
         cursorAnchorWindow.alphaValue = 0.01
-        cursorAnchorWindow.ignoresMouseEvents = true
+        cursorAnchorWindow.ignoresMouseEvents = false
         cursorAnchorWindow.level = .floating
         cursorAnchorWindow.collectionBehavior = [.moveToActiveSpace, .fullScreenAuxiliary]
     }

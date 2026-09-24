@@ -13,6 +13,24 @@ struct HistoryRowView: View {
     let onDelete: () -> Void
 
     var body: some View {
+        Button(action: onPaste) {
+            rowContent
+        }
+        .buttonStyle(.plain)
+        .contextMenu {
+            Button("Paste", action: onPaste)
+            if item.kind != .image && item.kind != .files {
+                Button("Paste without Formatting", action: onPasteUnstyled)
+                Button("Paste as Plain Text", action: onPastePlain)
+                Button("Paste Original", action: onPasteRaw)
+            }
+            Button(item.pinned ? "Unpin" : "Pin", action: onPin)
+            Divider()
+            Button("Delete", role: .destructive, action: onDelete)
+        }
+    }
+
+    private var rowContent: some View {
         HStack(spacing: 10) {
             iconBadge
             VStack(alignment: .leading, spacing: 2) {
@@ -56,21 +74,6 @@ struct HistoryRowView: View {
         .scaleEffect(isPressed ? 0.985 : 1)
         .animation(.easeOut(duration: 0.12), value: isPressed)
         .contentShape(RoundedRectangle(cornerRadius: 6))
-        .onTapGesture { onPaste() }
-        .accessibilityElement(children: .combine)
-        .accessibilityAddTraits(.isButton)
-        .accessibilityAction { onPaste() }
-        .contextMenu {
-            Button("Paste", action: onPaste)
-            if item.kind != .image && item.kind != .files {
-                Button("Paste without Formatting", action: onPasteUnstyled)
-                Button("Paste as Plain Text", action: onPastePlain)
-                Button("Paste Original", action: onPasteRaw)
-            }
-            Button(item.pinned ? "Unpin" : "Pin", action: onPin)
-            Divider()
-            Button("Delete", role: .destructive, action: onDelete)
-        }
     }
 
     private var badgeSize: CGFloat {

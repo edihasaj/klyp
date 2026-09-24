@@ -36,7 +36,9 @@ pasteboard. Precedence when a modifier is held: ⌥ beats ⇧.
 
 Clicking a history row holds a pressed highlight and checkmark for 220 ms
 before paste-back starts. A later click replaces the pending action; closing
-the picker cancels it. Keyboard paste remains immediate.
+the picker cancels it. Rows are plain buttons so the cursor-anchored popover
+receives mouse clicks and Accessibility press actions through the same path.
+Keyboard paste remains immediate.
 
 `⌃⇧V` pastes the newest item without opening the popover. Because the user is
 still holding `⌃⇧` when it fires, `Paster.whenModifiersReleased` polls until no
