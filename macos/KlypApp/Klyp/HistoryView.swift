@@ -7,6 +7,7 @@ struct HistoryView: View {
     @State private var query: String = ""
     @State private var selection: Int = 0
     @State private var pendingClickPasteID: UUID?
+    @State private var pendingClickGeneration = 0
     @State private var accessibilityTrusted = true
     @FocusState private var searchFocused: Bool
 
@@ -30,6 +31,10 @@ struct HistoryView: View {
             selection = 0
         }
         .onChange(of: query) { _, _ in selection = 0 }
+        .onDisappear {
+            pendingClickGeneration += 1
+            pendingClickPasteID = nil
+        }
     }
 
     private var permissionNotice: some View {
@@ -120,7 +125,8 @@ struct HistoryView: View {
                             HistoryRowView(
                                 item: item,
                                 index: index,
-                                isSelected: index == selection || pendingClickPasteID == item.id,
+                                isSelected: index == selection,
+                                isPressed: pendingClickPasteID == item.id,
                                 onPaste: { pasteItem(item, selectionIndex: index, showClickFeedback: true) },
                                 onPastePlain: { pasteItem(item, mode: .plain, selectionIndex: index, showClickFeedback: true) },
                                 onPasteUnstyled: { pasteItem(item, mode: .unstyled, selectionIndex: index, showClickFeedback: true) },
@@ -218,15 +224,17 @@ struct HistoryView: View {
             return
         }
 
-        pendingClickPasteID = item.id
-        if let selectionIndex {
-            withAnimation(.easeOut(duration: 0.08)) {
+        pendingClickGeneration += 1
+        let generation = pendingClickGeneration
+        withAnimation(.easeOut(duration: 0.12)) {
+            pendingClickPasteID = item.id
+            if let selectionIndex {
                 selection = selectionIndex
             }
         }
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.09) {
-            guard pendingClickPasteID == item.id else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.22) {
+            guard pendingClickGeneration == generation, pendingClickPasteID == item.id else { return }
             pendingClickPasteID = nil
             coordinator.paste(item, mode: effectiveMode)
         }

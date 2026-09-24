@@ -6,6 +6,13 @@ All notable changes to Klyp will be documented in this file. The format follows
 
 ## [Unreleased]
 
+## [0.1.20] - 2026-09-24
+
+### Changed
+- Clicking a history row now shows a pressed highlight and checkmark before
+  Klyp pastes or copies it. A newer click replaces the pending choice, and
+  closing the picker cancels it.
+
 ## [0.1.19] - 2026-09-24
 
 ### Fixed

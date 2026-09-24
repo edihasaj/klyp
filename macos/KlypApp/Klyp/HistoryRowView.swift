@@ -4,6 +4,7 @@ struct HistoryRowView: View {
     let item: ClipboardItem
     let index: Int
     let isSelected: Bool
+    let isPressed: Bool
     let onPaste: () -> Void
     let onPastePlain: () -> Void
     let onPasteUnstyled: () -> Void
@@ -29,7 +30,12 @@ struct HistoryRowView: View {
                     .font(.system(size: 10))
                     .foregroundStyle(.tint)
             }
-            if index < 9 {
+            if isPressed {
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 14))
+                    .foregroundStyle(.tint)
+                    .transition(.scale.combined(with: .opacity))
+            } else if index < 9 {
                 Text("⌘\(index + 1)")
                     .font(.system(size: 10, weight: .medium, design: .monospaced))
                     .foregroundStyle(.secondary)
@@ -42,8 +48,18 @@ struct HistoryRowView: View {
         .padding(.vertical, 6)
         .background(rowBackground)
         .clipShape(RoundedRectangle(cornerRadius: 6))
+        .overlay {
+            RoundedRectangle(cornerRadius: 6)
+                .strokeBorder(.tint.opacity(isPressed ? 0.6 : 0), lineWidth: 1)
+                .allowsHitTesting(false)
+        }
+        .scaleEffect(isPressed ? 0.985 : 1)
+        .animation(.easeOut(duration: 0.12), value: isPressed)
         .contentShape(RoundedRectangle(cornerRadius: 6))
         .onTapGesture { onPaste() }
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isButton)
+        .accessibilityAction { onPaste() }
         .contextMenu {
             Button("Paste", action: onPaste)
             if item.kind != .image && item.kind != .files {
@@ -145,7 +161,8 @@ struct HistoryRowView: View {
     }
 
     private var rowBackground: some ShapeStyle {
-        isSelected ? AnyShapeStyle(.tint.opacity(0.15)) : AnyShapeStyle(.clear)
+        if isPressed { return AnyShapeStyle(.tint.opacity(0.32)) }
+        return isSelected ? AnyShapeStyle(.tint.opacity(0.15)) : AnyShapeStyle(.clear)
     }
 
     private func relativeTime(_ date: Date) -> String {

@@ -34,6 +34,10 @@ pasteboard. Precedence when a modifier is held: ⌥ beats ⇧.
 | `unstyled` | `⌃↵`, `⌃⇧V` global  | Drops the RTF payload only. Characters, indentation and line breaks are untouched — for code copied out of an editor that ships syntax colors in the rich-text flavor. |
 | `original` | `⌥↵` / context menu  | None; the stored bytes. |
 
+Clicking a history row holds a pressed highlight and checkmark for 220 ms
+before paste-back starts. A later click replaces the pending action; closing
+the picker cancels it. Keyboard paste remains immediate.
+
 `⌃⇧V` pastes the newest item without opening the popover. Because the user is
 still holding `⌃⇧` when it fires, `Paster.whenModifiersReleased` polls until no
 modifier is physically down (600 ms cap) before synthesizing `⌘V` — otherwise
