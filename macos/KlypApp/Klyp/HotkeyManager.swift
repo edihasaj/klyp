@@ -1,4 +1,5 @@
 import AppKit
+@preconcurrency import ApplicationServices
 import Carbon.HIToolbox
 @preconcurrency import CoreGraphics
 import Foundation
@@ -74,6 +75,14 @@ final class HotkeyManager {
         }
         eventTapSource = nil
         eventTap = nil
+    }
+
+    /// Ask macOS for the permission used by paste-back and the independent
+    /// shortcut fallback. The system decides whether to show the prompt.
+    func requestAccessibilityIfNeeded() {
+        guard !AXIsProcessTrusted() else { return }
+        let key = kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String
+        _ = AXIsProcessTrustedWithOptions([key: true] as CFDictionary)
     }
 
     // MARK: - Registration
@@ -221,6 +230,14 @@ final class HotkeyManager {
             workspace.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
                 MainActor.assumeIsolated { self?.reregisterAll() }
             }
+        }
+
+        workspace.addObserver(
+            forName: NSWorkspace.didActivateApplicationNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated { self?.installEventTapIfPossible() }
         }
 
         DistributedNotificationCenter.default().addObserver(

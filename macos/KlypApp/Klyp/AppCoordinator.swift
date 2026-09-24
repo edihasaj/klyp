@@ -36,6 +36,12 @@ final class AppCoordinator {
         HotkeyManager.shared.register(DefaultHotkey.pasteUnstyled) { [weak self] in
             self?.pasteLatestUnstyled()
         }
+        // XCTest hosts the app too, but its runner cannot answer a modal alert.
+        if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+                self?.menuBar?.offerAccessibilityIfNeeded()
+            }
+        }
     }
 
     /// ⌃⇧V — paste the newest clipboard item into the frontmost app with all
@@ -52,6 +58,13 @@ final class AppCoordinator {
 
     func close() {
         menuBar?.close()
+    }
+
+    func openAccessibilitySettings() {
+        close()
+        HotkeyManager.shared.requestAccessibilityIfNeeded()
+        guard let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") else { return }
+        NSWorkspace.shared.open(url)
     }
 
     /// Emit one diagnostic line at launch describing the running bundle's path

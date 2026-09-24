@@ -55,6 +55,11 @@ fallback. This covers the macOS failure mode where Carbon reports a successful
 registration but silently stops delivering events. A short per-binding debounce
 prevents both paths from firing the same shortcut twice.
 
+Klyp asks for Accessibility at launch when it is not granted, and the menu bar
+context menu links to the relevant System Settings pane. When another app
+becomes active, Klyp checks whether access was granted and installs the fallback
+without waiting for a restart.
+
 Registration is treated as revocable, not one-shot. Another app can claim the
 shortcut minutes or hours after login, and a hot-key ref can survive a
 sleep/wake cycle as a non-nil pointer that no longer delivers events — both

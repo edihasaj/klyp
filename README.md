@@ -57,9 +57,10 @@ open build/Build/Products/Release/Klyp.app
 
 ## Permissions
 
-On first paste-back, macOS will ask for **Accessibility** permission so Klyp
-can synthesize `⌘V` into the focused app. Grant it under
-*System Settings → Privacy & Security → Accessibility*.
+At launch, Klyp offers **Accessibility** permission if it is not enabled. It
+uses this to paste into the focused app and to keep the global shortcut working
+when macOS stops delivering it. You can also right-click Klyp's menu bar icon
+and choose **Enable Accessibility…** to open the setting again.
 
 Klyp does not phone home. History stays on your machine in
 `~/Library/Application Support/Klyp/`.

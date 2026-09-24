@@ -1,19 +1,25 @@
 # Permissions
 
-Klyp uses two macOS facilities. Neither is requested at launch — they prompt
-contextually the first time they're needed.
+Klyp uses two macOS facilities. Accessibility is offered at launch when it has
+not been granted, because it also provides a fallback for the global shortcut.
 
 ## Accessibility
 
-**When**: the first time you click an item in Klyp's popover (or hit Enter to
-paste).
+**When**: at launch if access has not been granted. You can also right-click
+Klyp's menu bar icon and choose **Enable Accessibility…** to open System Settings.
 
-**Why**: Klyp synthesizes a `⌘V` keystroke into the previously-active app.
-That requires Accessibility permission.
+**Why**: Klyp synthesizes a `⌘V` keystroke into the previously-active app and
+uses an event tap when macOS stops delivering its global shortcut through
+Carbon. Both need Accessibility permission.
 
 **Where to grant**: System Settings → Privacy & Security → Accessibility →
 toggle Klyp on. macOS may show the prompt automatically; if not, just open the
 panel and add the app.
+
+If Klyp is already on but the shortcut still does nothing, remove that entry
+and add `/Applications/Klyp.app`. A development build can have the same bundle
+ID as the installed app but a different code signature, so its grant does not
+apply to the installed app.
 
 > Until granted, Klyp still copies the item back to the system clipboard, so
 > you can press `⌘V` yourself.

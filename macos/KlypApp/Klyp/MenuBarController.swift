@@ -103,6 +103,7 @@ final class MenuBarController: NSResponder, NSPopoverDelegate {
         // time uses this to decide whether the target app is a terminal.
         rememberFrontmostApp()
         openedAtCursor = false
+        refreshHistoryView()
         NSApp.activate(ignoringOtherApps: true)
         updateStatusButtonImage()
         popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
@@ -117,6 +118,7 @@ final class MenuBarController: NSResponder, NSPopoverDelegate {
         cursorAnchorWindow.setFrameOrigin(Self.anchorOrigin(near: pointer, visibleFrame: screen.visibleFrame))
         cursorAnchorWindow.orderFrontRegardless()
         openedAtCursor = true
+        refreshHistoryView()
         NSApp.activate(ignoringOtherApps: true)
         popover.show(relativeTo: cursorAnchorView.bounds, of: cursorAnchorView, preferredEdge: .minY)
         updateStatusButtonImage()
@@ -141,6 +143,15 @@ final class MenuBarController: NSResponder, NSPopoverDelegate {
         return NSPoint(
             x: min(max(pointer.x + gap, visibleFrame.minX), visibleFrame.maxX - 1),
             y: min(max(pointer.y - gap, visibleFrame.minY), visibleFrame.maxY - 1)
+        )
+    }
+
+    private func refreshHistoryView() {
+        guard let coordinator else { return }
+        popover.contentViewController = NSHostingController(
+            rootView: HistoryView()
+                .environment(coordinator.store)
+                .environment(coordinator)
         )
     }
 
@@ -255,6 +266,11 @@ final class MenuBarController: NSResponder, NSPopoverDelegate {
 
     private func showContextMenu(_ sender: NSStatusBarButton) {
         let menu = NSMenu()
+        if !AXIsProcessTrusted() {
+            menu.addItem(withTitle: "Enable Accessibility…", action: #selector(openAccessibilitySettings), keyEquivalent: "")
+                .target = self
+            menu.addItem(.separator())
+        }
         menu.addItem(withTitle: "Open Klyp", action: #selector(toggleFromMenu), keyEquivalent: "")
             .target = self
         menu.addItem(.separator())
@@ -270,7 +286,17 @@ final class MenuBarController: NSResponder, NSPopoverDelegate {
         statusItem.menu = nil // restore default click behavior next time
     }
 
+    func offerAccessibilityIfNeeded() {
+        guard !AXIsProcessTrusted() else { return }
+        let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "unknown"
+        let key = "klyp.accessibilityOfferVersion"
+        guard UserDefaults.standard.string(forKey: key) != version else { return }
+        UserDefaults.standard.set(version, forKey: key)
+        showMenuBar()
+    }
+
     @objc private func toggleFromMenu() { toggleMenuBar() }
+    @objc private func openAccessibilitySettings() { coordinator?.openAccessibilitySettings() }
     @objc private func openSettings() { coordinator?.openSettings() }
     @objc private func openAbout() { coordinator?.openAbout() }
     @objc private func quit() { NSApp.terminate(nil) }

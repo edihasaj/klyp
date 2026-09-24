@@ -6,6 +6,15 @@ All notable changes to Klyp will be documented in this file. The format follows
 
 ## [Unreleased]
 
+## [0.1.18] - 2026-09-24
+
+### Fixed
+- Klyp now offers Accessibility access at launch and provides a menu bar link
+  to the setting. The popover explains how to replace a grant for an older
+  development build, which cannot authorize the installed app. Klyp starts the
+  shortcut's event tap after the next app switch when access is granted, without
+  requiring another restart.
+
 ## [0.1.17] - 2026-09-24
 
 ### Changed

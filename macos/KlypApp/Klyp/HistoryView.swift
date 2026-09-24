@@ -7,10 +7,15 @@ struct HistoryView: View {
     @State private var query: String = ""
     @State private var selection: Int = 0
     @State private var pendingClickPasteID: UUID?
+    @State private var accessibilityTrusted = true
     @FocusState private var searchFocused: Bool
 
     var body: some View {
         VStack(spacing: 0) {
+            if !accessibilityTrusted {
+                permissionNotice
+                Divider()
+            }
             header
             Divider()
             content
@@ -19,8 +24,27 @@ struct HistoryView: View {
         }
         .frame(width: 360, height: 480)
         .background(.regularMaterial)
-        .onAppear { searchFocused = true; selection = 0 }
+        .onAppear {
+            accessibilityTrusted = AXIsProcessTrusted()
+            searchFocused = true
+            selection = 0
+        }
         .onChange(of: query) { _, _ in selection = 0 }
+    }
+
+    private var permissionNotice: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Text("Enable Accessibility")
+                .font(.system(size: 13, weight: .semibold))
+            Text("Enable /Applications/Klyp.app for paste and ⌃Space. If Klyp is already on, remove that entry and add the installed app.")
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+            Button("Open Settings") { coordinator.openAccessibilitySettings() }
+                .font(.system(size: 11, weight: .medium))
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .background(.tint.opacity(0.1))
     }
 
     private var header: some View {
