@@ -52,8 +52,9 @@ on `EventHotKeyID.id`.
 
 When Accessibility access is available, it also installs a session event-tap
 fallback. This covers the macOS failure mode where Carbon reports a successful
-registration but silently stops delivering events. A short per-binding debounce
-prevents both paths from firing the same shortcut twice.
+registration but silently stops delivering events. A per-binding debounce
+discards a delayed second delivery from the other path while allowing another
+press through the same path to toggle the picker promptly.
 
 Klyp asks for Accessibility at launch when it is not granted, and the menu bar
 context menu links to the relevant System Settings pane. When another app

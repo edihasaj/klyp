@@ -6,6 +6,14 @@ All notable changes to Klyp will be documented in this file. The format follows
 
 ## [Unreleased]
 
+## [0.1.19] - 2026-09-24
+
+### Fixed
+- A physical shortcut press could reach both Carbon and the Accessibility
+  event tap more than 150 ms apart, opening and immediately closing the picker.
+  Klyp now suppresses delayed duplicate delivery across those paths. Closing
+  the popover also completes before its cursor anchor is hidden.
+
 ## [0.1.18] - 2026-09-24
 
 ### Fixed

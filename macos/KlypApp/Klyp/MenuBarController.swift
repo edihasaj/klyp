@@ -128,7 +128,7 @@ final class MenuBarController: NSResponder, NSPopoverDelegate {
     func close() {
         let wasOpenedAtCursor = openedAtCursor
         openedAtCursor = false
-        popover.performClose(nil)
+        popover.close()
         cursorAnchorWindow.orderOut(nil)
         removeCloseMonitor()
         updateStatusButtonImage()

@@ -13,6 +13,26 @@ struct HotkeyBinding: Sendable, Equatable {
     let label: String
 }
 
+enum HotkeyDelivery: Equatable {
+    case carbon
+    case eventTap
+}
+
+struct HotkeyDebouncer {
+    private var lastFire: [UInt32: (time: CFAbsoluteTime, source: HotkeyDelivery)] = [:]
+
+    mutating func shouldFire(id: UInt32, source: HotkeyDelivery, at now: CFAbsoluteTime) -> Bool {
+        if let previous = lastFire[id] {
+            // One physical press can arrive through both paths. A second press
+            // through the same path can still toggle the picker promptly.
+            let interval = source == previous.source ? 0.15 : 1.0
+            guard now - previous.time > interval else { return false }
+        }
+        lastFire[id] = (now, source)
+        return true
+    }
+}
+
 /// Registers Klyp's global hotkeys using the Carbon Event Manager. Carbon is
 /// deprecated for many things, but `RegisterEventHotKey` remains the supported
 /// way to claim a system-wide shortcut on macOS as of 14+.
@@ -37,7 +57,7 @@ final class HotkeyManager {
     private var observersInstalled = false
     private var eventTap: CFMachPort?
     private var eventTapSource: CFRunLoopSource?
-    private var lastFire: [UInt32: CFAbsoluteTime] = [:]
+    private var debouncer = HotkeyDebouncer()
 
     /// Longest gap between retries. We never give up — an app that stole the
     /// shortcut may quit hours later, and the user shouldn't have to restart
@@ -70,6 +90,7 @@ final class HotkeyManager {
         if let h = eventHandler { RemoveEventHandler(h); eventHandler = nil }
         bindings.removeAll()
         handlers.removeAll()
+        debouncer = HotkeyDebouncer()
         if let source = eventTapSource {
             CFRunLoopRemoveSource(CFRunLoopGetMain(), source, .commonModes)
         }
@@ -135,15 +156,17 @@ final class HotkeyManager {
                               nil,
                               &hkID)
             let id = hkID.id
-            DispatchQueue.main.async { manager.fire(id) }
+            DispatchQueue.main.async { manager.fire(id, source: .carbon) }
             return noErr
         }, 1, &spec, userData, &eventHandler)
     }
 
-    private func fire(_ id: UInt32) {
+    private func fire(_ id: UInt32, source: HotkeyDelivery) {
         let now = CFAbsoluteTimeGetCurrent()
-        guard now - (lastFire[id] ?? 0) > 0.15 else { return }
-        lastFire[id] = now
+        guard debouncer.shouldFire(id: id, source: source, at: now) else { return }
+        if let binding = bindings[id] {
+            NSLog("[Klyp] Hotkey %@ fired via %@", binding.label, source == .carbon ? "Carbon" : "event tap")
+        }
         handlers[id]?()
     }
 
@@ -183,7 +206,7 @@ final class HotkeyManager {
                     guard let id = manager.bindingID(for: event) else {
                         return Unmanaged.passUnretained(event)
                     }
-                    manager.fire(id)
+                    manager.fire(id, source: .eventTap)
                     return nil
                 }
             },
