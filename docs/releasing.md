@@ -21,7 +21,7 @@ Then `cd macos/KlypApp && xcodegen` to regenerate the project.
 
 This produces:
 
-- `dist/Klyp.app` — built and ad-hoc signed
+- `dist/Klyp.app` — built app
 - `dist/Klyp.app.zip` — the asset to attach to a GitHub release
 - The script also prints the SHA-256 of the zip — you'll need it for the cask.
 
@@ -30,7 +30,18 @@ published — that is what produced the "Klyp is damaged" Gatekeeper failures
 fixed in 0.1.9. To build a publishable zip:
 
 ```bash
-KLYP_SIGN_IDENTITY="2BD41E421590DEAEB6AA3726E2457E6C0CC532A9" \
+KLYP_SIGN_IDENTITY="<Developer ID SHA-1>" \
+KLYP_NOTARY_PROFILE=klyp \
+./scripts/build-app.sh
+```
+
+If the signing certificate lives in a dedicated keychain, set
+`KLYP_SIGN_KEYCHAIN` to its path. The build and final signature will both use
+that keychain. For example:
+
+```bash
+KLYP_SIGN_IDENTITY="<Developer ID SHA-1>" \
+KLYP_SIGN_KEYCHAIN="$HOME/Library/Keychains/klyp-release.keychain-db" \
 KLYP_NOTARY_PROFILE=klyp \
 ./scripts/build-app.sh
 ```

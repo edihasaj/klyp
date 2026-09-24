@@ -3,11 +3,14 @@ import SwiftUI
 
 /// Presents history from the menu bar or beside the pointer for the hotkey.
 @MainActor
-final class MenuBarController: NSObject, NSPopoverDelegate {
+final class MenuBarController: NSResponder, NSPopoverDelegate {
     private let statusItem: NSStatusItem
     private let popover: NSPopover
-    private let cursorPanel: CursorPanel
+    private let cursorAnchorWindow: NSWindow
+    private let cursorAnchorView: NSView
     private weak var coordinator: AppCoordinator?
+    private var previousFrontmostApplication: NSRunningApplication?
+    private var openedAtCursor = false
     private var transientCloseMonitor: Any?
     private var buttonTrackingArea: NSTrackingArea?
     private var isButtonHovered = false
@@ -18,9 +21,10 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
         self.coordinator = coordinator
         self.statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         self.popover = NSPopover()
-        self.cursorPanel = CursorPanel(
-            contentRect: NSRect(origin: .zero, size: NSSize(width: 360, height: 480)),
-            styleMask: [.borderless, .nonactivatingPanel],
+        self.cursorAnchorView = NSView(frame: NSRect(x: 0, y: 0, width: 1, height: 1))
+        self.cursorAnchorWindow = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 1, height: 1),
+            styleMask: [.borderless],
             backing: .buffered,
             defer: false
         )
@@ -45,19 +49,17 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
         )
         popover.contentSize = NSSize(width: 360, height: 480)
 
-        cursorPanel.contentViewController = NSHostingController(
-            rootView: HistoryView()
-                .environment(coordinator.store)
-                .environment(coordinator)
-        )
-        cursorPanel.isOpaque = false
-        cursorPanel.backgroundColor = .clear
-        cursorPanel.hasShadow = true
-        cursorPanel.level = .floating
-        cursorPanel.collectionBehavior = [.moveToActiveSpace, .fullScreenAuxiliary]
-        cursorPanel.contentView?.wantsLayer = true
-        cursorPanel.contentView?.layer?.cornerRadius = 12
-        cursorPanel.contentView?.layer?.masksToBounds = true
+        cursorAnchorWindow.contentView = cursorAnchorView
+        cursorAnchorWindow.isOpaque = false
+        cursorAnchorWindow.backgroundColor = .clear
+        cursorAnchorWindow.alphaValue = 0.01
+        cursorAnchorWindow.ignoresMouseEvents = true
+        cursorAnchorWindow.level = .floating
+        cursorAnchorWindow.collectionBehavior = [.moveToActiveSpace, .fullScreenAuxiliary]
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("MenuBarController must be initialized with an AppCoordinator")
     }
 
     @objc private func handleClick(_ sender: NSStatusBarButton) {
@@ -80,7 +82,7 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
     }
 
     func toggleAtCursor() {
-        if cursorPanel.isVisible || popover.isShown {
+        if popover.isShown {
             close()
         } else {
             showAtCursor()
@@ -91,6 +93,7 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
         let prior = NSWorkspace.shared.frontmostApplication?.bundleIdentifier
         if prior != Bundle.main.bundleIdentifier {
             coordinator?.previousFrontmostBundleID = prior
+            previousFrontmostApplication = NSWorkspace.shared.frontmostApplication
         }
     }
 
@@ -99,6 +102,7 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
         // Snapshot the app that's frontmost *before* we activate Klyp — paste
         // time uses this to decide whether the target app is a terminal.
         rememberFrontmostApp()
+        openedAtCursor = false
         NSApp.activate(ignoringOtherApps: true)
         updateStatusButtonImage()
         popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
@@ -110,20 +114,34 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
         let pointer = NSEvent.mouseLocation
         let screen = NSScreen.screens.first { $0.frame.contains(pointer) } ?? NSScreen.main
         guard let screen else { return }
-        let origin = CursorPanel.origin(
-            near: pointer, size: cursorPanel.frame.size, visibleFrame: screen.visibleFrame
-        )
-        cursorPanel.setFrameOrigin(origin)
-        cursorPanel.makeKeyAndOrderFront(nil)
+        cursorAnchorWindow.setFrameOrigin(Self.anchorOrigin(near: pointer, visibleFrame: screen.visibleFrame))
+        cursorAnchorWindow.orderFrontRegardless()
+        openedAtCursor = true
+        NSApp.activate(ignoringOtherApps: true)
+        popover.show(relativeTo: cursorAnchorView.bounds, of: cursorAnchorView, preferredEdge: .minY)
         updateStatusButtonImage()
         installCloseMonitor()
     }
 
     func close() {
+        let wasOpenedAtCursor = openedAtCursor
+        openedAtCursor = false
         popover.performClose(nil)
-        cursorPanel.orderOut(nil)
+        cursorAnchorWindow.orderOut(nil)
         removeCloseMonitor()
         updateStatusButtonImage()
+        if wasOpenedAtCursor,
+           NSWorkspace.shared.frontmostApplication?.bundleIdentifier == Bundle.main.bundleIdentifier {
+            previousFrontmostApplication?.activate(options: [])
+        }
+    }
+
+    static func anchorOrigin(near pointer: NSPoint, visibleFrame: NSRect) -> NSPoint {
+        let gap: CGFloat = 12
+        return NSPoint(
+            x: min(max(pointer.x + gap, visibleFrame.minX), visibleFrame.maxX - 1),
+            y: min(max(pointer.y - gap, visibleFrame.minY), visibleFrame.maxY - 1)
+        )
     }
 
     /// Stack-of-cards mark, drawn programmatically so it can switch between a
@@ -190,12 +208,12 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
         buttonTrackingArea = area
     }
 
-    @objc func mouseEntered(with event: NSEvent) {
+    override func mouseEntered(with event: NSEvent) {
         isButtonHovered = true
         updateStatusButtonImage()
     }
 
-    @objc func mouseExited(with event: NSEvent) {
+    override func mouseExited(with event: NSEvent) {
         isButtonHovered = false
         updateStatusButtonImage()
     }
@@ -229,7 +247,7 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
 
     private func updateStatusButtonImage() {
         statusItem.button?.image = Self.menuBarIcon(
-            active: popover.isShown || cursorPanel.isVisible,
+            active: popover.isShown,
             hovered: isButtonHovered,
             pressed: isButtonPressed
         )
@@ -275,29 +293,11 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
 
     nonisolated func popoverDidClose(_ notification: Notification) {
         Task { @MainActor in
+            guard !self.popover.isShown else { return }
+            self.openedAtCursor = false
+            self.cursorAnchorWindow.orderOut(nil)
             self.removeCloseMonitor()
             self.updateStatusButtonImage()
         }
-    }
-}
-
-/// A nonactivating panel accepts search keystrokes while the destination app
-/// stays active, so closing it returns keyboard focus to the paste target.
-@MainActor
-final class CursorPanel: NSPanel {
-    override var canBecomeKey: Bool { true }
-
-    static func origin(near pointer: NSPoint, size: NSSize, visibleFrame: NSRect) -> NSPoint {
-        let gap: CGFloat = 12
-        let preferredX = pointer.x + gap
-        let preferredY = pointer.y - size.height - gap
-        let x = preferredX + size.width > visibleFrame.maxX
-            ? pointer.x - size.width - gap : preferredX
-        let y = preferredY < visibleFrame.minY
-            ? pointer.y + gap : preferredY
-        return NSPoint(
-            x: min(max(x, visibleFrame.minX), max(visibleFrame.minX, visibleFrame.maxX - size.width)),
-            y: min(max(y, visibleFrame.minY), max(visibleFrame.minY, visibleFrame.maxY - size.height))
-        )
     }
 }

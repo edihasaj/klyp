@@ -6,6 +6,8 @@ All notable changes to Klyp will be documented in this file. The format follows
 
 ## [Unreleased]
 
+## [0.1.17] - 2026-09-24
+
 ### Changed
 - `⌃Space` opens the history picker beside the mouse pointer. It stays within
   the current display's visible area. Clicking the menu bar icon still opens

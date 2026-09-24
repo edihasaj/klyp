@@ -8,7 +8,7 @@ KlypApp.swift              — @main entry; installs AppDelegate; Settings scene
    └─ AppCoordinator       — wires watcher + menu bar + hotkey + paste
       ├─ ClipboardStore    — @Observable history; persists to JSON
       ├─ PasteboardWatcher — polls NSPasteboard.changeCount @ 0.3 s
-      ├─ MenuBarController — NSStatusItem popover + cursor panel (HistoryView)
+      ├─ MenuBarController — NSStatusItem + cursor-anchored popover (HistoryView)
       ├─ HotkeyManager     — global ⌃Space and ⌃⇧V shortcuts
       └─ Paster            — restores item to pasteboard, synthesizes ⌘V
 ```
@@ -41,10 +41,10 @@ the target app receives `⌃⇧⌘V`.
 
 ## Global hotkeys
 
-`⌃Space` opens the history picker beside the mouse pointer on its current
-display. The panel shifts left or above the pointer near screen edges and stays
-inside the display's visible area. Clicking the menu bar icon still opens the
-popover below the icon. Both pickers share the same history and paste actions.
+`⌃Space` anchors the history popover beside the mouse pointer on its current
+display. AppKit repositions the popover near screen edges. Clicking the menu
+bar icon anchors the same popover below the icon. Both paths share history and
+paste actions.
 
 `HotkeyManager` owns every Carbon binding (`DefaultHotkey.toggle`,
 `DefaultHotkey.pasteUnstyled`) behind one installed event handler, dispatching

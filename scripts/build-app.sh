@@ -14,6 +14,11 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 APPDIR="$ROOT/macos/KlypApp"
 DIST="$ROOT/dist"
 SIGN_ID="${KLYP_SIGN_IDENTITY:--}"
+SIGN_KEYCHAIN="${KLYP_SIGN_KEYCHAIN:-}"
+CODE_SIGN_FLAGS="--timestamp --options=runtime"
+if [[ -n "$SIGN_KEYCHAIN" ]]; then
+  CODE_SIGN_FLAGS+=" --keychain $SIGN_KEYCHAIN"
+fi
 
 cd "$APPDIR"
 xcodegen
@@ -23,7 +28,7 @@ xcodebuild \
   -derivedDataPath build \
   CODE_SIGN_IDENTITY="$SIGN_ID" \
   CODE_SIGN_STYLE=Manual \
-  OTHER_CODE_SIGN_FLAGS="--timestamp --options=runtime" \
+  OTHER_CODE_SIGN_FLAGS="$CODE_SIGN_FLAGS" \
   | tail -40
 
 APP_PATH="$APPDIR/build/Build/Products/Release/Klyp.app"
@@ -32,7 +37,11 @@ APP_PATH="$APPDIR/build/Build/Products/Release/Klyp.app"
 # the embedded Swift dylibs and the app bundle all get the same treatment.
 if [[ "$SIGN_ID" != "-" ]]; then
   echo "==> Re-signing $APP_PATH with $SIGN_ID"
-  /usr/bin/codesign --force --deep --options runtime --timestamp \
+  SIGN_ARGS=(--force --deep --options runtime --timestamp)
+  if [[ -n "$SIGN_KEYCHAIN" ]]; then
+    SIGN_ARGS+=(--keychain "$SIGN_KEYCHAIN")
+  fi
+  /usr/bin/codesign "${SIGN_ARGS[@]}" \
     --sign "$SIGN_ID" "$APP_PATH"
   /usr/bin/codesign --verify --deep --strict --verbose=2 "$APP_PATH"
   echo "==> Gatekeeper assessment:"
