@@ -9,7 +9,6 @@ final class MenuBarController: NSResponder, NSPopoverDelegate {
     private let cursorAnchorWindow: NSWindow
     private let cursorAnchorView: NSView
     private weak var coordinator: AppCoordinator?
-    private var previousFrontmostApplication: NSRunningApplication?
     private var openedAtCursor = false
     private var transientCloseMonitor: Any?
     private var buttonTrackingArea: NSTrackingArea?
@@ -39,7 +38,10 @@ final class MenuBarController: NSResponder, NSPopoverDelegate {
             installButtonTracking(on: button)
         }
 
-        popover.behavior = .transient
+        // Transient popovers can dismiss on the first click before SwiftUI's
+        // row button receives mouseUp when Klyp is activating from a hotkey.
+        // The outside-click monitor below handles dismissal explicitly.
+        popover.behavior = .applicationDefined
         popover.animates = true
         popover.delegate = self
         popover.contentViewController = NSHostingController(
@@ -93,12 +95,13 @@ final class MenuBarController: NSResponder, NSPopoverDelegate {
         let prior = NSWorkspace.shared.frontmostApplication?.bundleIdentifier
         if prior != Bundle.main.bundleIdentifier {
             coordinator?.previousFrontmostBundleID = prior
-            previousFrontmostApplication = NSWorkspace.shared.frontmostApplication
+            coordinator?.previousFrontmostApplication = NSWorkspace.shared.frontmostApplication
         }
     }
 
     private func showMenuBar() {
         guard let button = statusItem.button else { return }
+        coordinator?.cancelPendingClickPaste()
         // Snapshot the app that's frontmost *before* we activate Klyp — paste
         // time uses this to decide whether the target app is a terminal.
         rememberFrontmostApp()
@@ -111,6 +114,7 @@ final class MenuBarController: NSResponder, NSPopoverDelegate {
     }
 
     private func showAtCursor() {
+        coordinator?.cancelPendingClickPaste()
         rememberFrontmostApp()
         let pointer = NSEvent.mouseLocation
         let screen = NSScreen.screens.first { $0.frame.contains(pointer) } ?? NSScreen.main
@@ -125,16 +129,16 @@ final class MenuBarController: NSResponder, NSPopoverDelegate {
         installCloseMonitor()
     }
 
-    func close() {
+    func close(restorePreviousApplication: Bool = true) {
         let wasOpenedAtCursor = openedAtCursor
         openedAtCursor = false
         popover.close()
         cursorAnchorWindow.orderOut(nil)
         removeCloseMonitor()
         updateStatusButtonImage()
-        if wasOpenedAtCursor,
+        if restorePreviousApplication, wasOpenedAtCursor,
            NSWorkspace.shared.frontmostApplication?.bundleIdentifier == Bundle.main.bundleIdentifier {
-            previousFrontmostApplication?.activate(options: [])
+            coordinator?.previousFrontmostApplication?.activate(options: [])
         }
     }
 
@@ -306,7 +310,13 @@ final class MenuBarController: NSResponder, NSPopoverDelegate {
     private func installCloseMonitor() {
         removeCloseMonitor()
         transientCloseMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] _ in
-            Task { @MainActor in self?.close() }
+            let pointer = NSEvent.mouseLocation
+            Task { @MainActor in
+                guard let self,
+                      self.popover.contentViewController?.view.window?.frame.contains(pointer) != true
+                else { return }
+                self.close(restorePreviousApplication: false)
+            }
         }
     }
 

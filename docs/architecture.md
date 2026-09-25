@@ -35,10 +35,14 @@ pasteboard. Precedence when a modifier is held: ⌥ beats ⇧.
 | `original` | `⌥↵` / context menu  | None; the stored bytes. |
 
 Clicking a history row holds a pressed highlight and checkmark for 220 ms
-before paste-back starts. A later click replaces the pending action; closing
-the picker cancels it. Rows are plain buttons so the cursor-anchored popover
-receives mouse clicks and Accessibility press actions through the same path.
-Keyboard paste remains immediate.
+before paste-back starts. The coordinator owns the pending action, so a popover
+dismissal during that feedback cannot discard the click. A later click replaces
+the pending action; reopening the picker cancels it. Rows are plain buttons so
+the cursor-anchored popover receives mouse clicks and Accessibility press
+actions through the same path. Keyboard paste remains immediate. After closing,
+Klyp waits for the original app to become frontmost before sending ⌘V. If it
+does not regain focus, Klyp restores the item to the clipboard without sending
+keys to another app.
 
 `⌃⇧V` pastes the newest item without opening the popover. Because the user is
 still holding `⌃⇧` when it fires, `Paster.whenModifiersReleased` polls until no

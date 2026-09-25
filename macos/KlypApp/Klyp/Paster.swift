@@ -26,7 +26,12 @@ enum Paster {
     /// captured before Klyp activated itself. Falls back to a live lookup
     /// when omitted (e.g. unit tests).
     @discardableResult
-    static func paste(_ item: ClipboardItem, mode: PasteMode = .smart, targetBundleID: String? = nil) -> Int {
+    static func paste(
+        _ item: ClipboardItem,
+        mode: PasteMode = .smart,
+        targetBundleID: String? = nil,
+        sendKey: Bool = true
+    ) -> Int {
         let effective: ClipboardItem = switch mode {
         case .original: item
         case .plain: plainText(item)
@@ -35,7 +40,7 @@ enum Paster {
         }
         writeToPasteboard(effective)
         let cc = NSPasteboard.general.changeCount
-        synthesizeCommandV()
+        if sendKey { synthesizeCommandV() }
         return cc
     }
 

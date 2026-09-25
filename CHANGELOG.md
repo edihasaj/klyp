@@ -6,6 +6,14 @@ All notable changes to Klyp will be documented in this file. The format follows
 
 ## [Unreleased]
 
+## [0.1.22] - 2026-09-25
+
+### Fixed
+- Clicking a history item now completes its paste even if the picker dismisses
+  during the pressed feedback. Klyp waits for the destination app to regain
+  focus before sending ⌘V, and ignores inside clicks in its outside-click
+  monitor.
+
 ## [0.1.21] - 2026-09-24
 
 ### Fixed
