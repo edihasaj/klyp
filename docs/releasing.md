@@ -51,7 +51,11 @@ Two gotchas:
 - **Pass the certificate's SHA-1, not its name.** The login keychain holds
   three certs all named `Developer ID Application: Applifyer, LLC
   (T8J48M4QVY)`, so `codesign` fails with `ambiguous (matches …)`. List them
-  with `security find-identity -v -p codesigning`.
+  with `security find-identity -v -p codesigning`. On a fresh Mac the only
+  copy is the one in 1Password (`applifyer` › `Apple Developer ID
+  Application`, SHA-1
+  `D8A977A01A3CEE4199F5775C6101769099D48E6D`, valid until 2031-05-06); `apple-codesign setup` imports
+  it into its own keychain.
 - **The notary profile is per-machine keychain state**, so a fresh Mac has
   none. Everything needed to recreate it lives in the 1Password item
   **`Klyp Notarization`** (vault `EUnifyer`) — Apple ID, team ID, profile name,
