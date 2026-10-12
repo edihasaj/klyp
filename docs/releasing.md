@@ -1,5 +1,8 @@
 # Releasing Klyp
 
+Install only artifacts downloaded from a published official release. Publish
+the signed and notarized build before updating an installed copy of Klyp.
+
 ## 1. Bump version
 
 In `macos/KlypApp/project.yml`:
@@ -18,6 +21,9 @@ Then `cd macos/KlypApp && xcodegen` to regenerate the project.
 ```bash
 ./scripts/build-app.sh
 ```
+
+Release builds disable Xcode's injected debug entitlements so notarization
+does not reject `com.apple.security.get-task-allow`.
 
 This produces:
 

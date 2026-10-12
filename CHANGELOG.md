@@ -6,6 +6,12 @@ All notable changes to Klyp will be documented in this file. The format follows
 
 ## [Unreleased]
 
+## [0.1.23] - 2026-10-12
+
+### Fixed
+- Centered the menu bar card stack visually with neighboring icons, including
+  its hover, pressed, and open states.
+
 ## [0.1.22] - 2026-09-25
 
 ### Fixed

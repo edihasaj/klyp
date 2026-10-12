@@ -28,6 +28,7 @@ xcodebuild \
   -derivedDataPath build \
   CODE_SIGN_IDENTITY="$SIGN_ID" \
   CODE_SIGN_STYLE=Manual \
+  CODE_SIGN_INJECT_BASE_ENTITLEMENTS=NO \
   OTHER_CODE_SIGN_FLAGS="$CODE_SIGN_FLAGS" \
   | tail -40
 
