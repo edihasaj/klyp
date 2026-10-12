@@ -164,13 +164,16 @@ final class MenuBarController: NSResponder, NSPopoverDelegate {
     /// and a brand-pink "active" version when the popover is showing.
     static func menuBarIcon(active: Bool, hovered: Bool = false, pressed: Bool = false) -> NSImage {
         let size: CGFloat = 18
-        let image = NSImage(size: NSSize(width: size, height: size), flipped: false) { _ in
+        let imageSize = NSSize(width: size, height: 20)
+        let image = NSImage(size: imageSize, flipped: false) { _ in
             guard let ctx = NSGraphicsContext.current?.cgContext else { return false }
             let s = size
             let cardW = s * 0.62
             let cardH = s * 0.74
             let cx = s / 2
-            let cy = s / 2
+            // The opaque front card pulls the visual center upward. Lower the
+            // stack one point; the taller canvas keeps every card unclipped.
+            let cy = imageSize.height / 2 - 1
             let corner = s * 0.13
 
             let activeColor = CGColor(red: 1.0, green: 0.42, blue: 0.62, alpha: 1.0)

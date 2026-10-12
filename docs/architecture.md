@@ -49,6 +49,12 @@ still holding `⌃⇧` when it fires, `Paster.whenModifiersReleased` polls until
 modifier is physically down (600 ms cap) before synthesizing `⌘V` — otherwise
 the target app receives `⌃⇧⌘V`.
 
+## Menu bar icon
+
+The menu bar mark uses an 18 × 20 point canvas. Its card stack sits one point
+below the canvas center to balance the darker front card, with enough padding
+to avoid clipping. Idle, hover, pressed, and open states share that geometry.
+
 ## Global hotkeys
 
 `⌃Space` anchors the history popover beside the mouse pointer on its current
