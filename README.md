@@ -64,6 +64,7 @@ and choose **Enable Accessibility…** to open the setting again.
 
 Klyp does not phone home. History stays on your machine in
 `~/Library/Application Support/Klyp/`.
+See the [privacy policy](docs/privacy.md) for details.
 
 ## Default Shortcuts
 

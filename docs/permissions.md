@@ -35,9 +35,13 @@ user's Login Items.
 
 ---
 
-Klyp does **not** use:
+The direct-download edition does **not** use:
 
 - Sandbox (it's a non-sandboxed AppKit app).
 - Network — no telemetry, no updates, no analytics.
 - Full Disk Access — it only reads the system pasteboard.
 - Automation/Apple Events — Klyp does not script other apps.
+
+The Mac App Store candidate enables App Sandbox and read-only access to
+user-selected files. See [mac-app-store.md](mac-app-store.md) for its release
+gates. Clipboard history in that edition lives inside its sandbox container.

@@ -1,0 +1,14 @@
+{
+  "appInfoLocalization": {
+    "name": "Klyp",
+    "subtitle": "Clipboard history in your menu",
+    "privacyPolicyUrl": "https://github.com/edihasaj/klyp/blob/main/docs/privacy.md"
+  },
+  "appStoreVersionLocalization": {
+    "description": "Keep useful copies close at hand.\n\nKlyp is a lightweight clipboard history manager that lives in your Mac's menu bar. Find something you copied earlier, pin items you want to keep, and reuse text with the formatting you need.\n\n• Search your clipboard history from a compact native picker.\n• Keep text, rich text, images, and links together.\n• Pin frequently used items so they stay in your history.\n• Choose a history size from 5 to 200 items.\n• Remove rich-text formatting while keeping the original characters.\n• Clean up terminal gutters and wrapped text with plain-text normalization.\n• Configure smart trimming for multi-line shell commands and Markdown snippets.\n• Start Klyp at login if you want it ready throughout the day.\n\nYour history stays on your Mac. Klyp has no account, ads, analytics, or cloud service.\n\nFree and open source. Requires macOS 14 or later.",
+    "keywords": "clipboard,history,copy,text,pin,menu bar,productivity,plain text,terminal,developer",
+    "supportUrl": "https://github.com/edihasaj/klyp/issues",
+    "marketingUrl": "https://github.com/edihasaj/klyp",
+    "promotionalText": "A small native clipboard history manager for your Mac. Search, pin, and reuse your copies while keeping your history local."
+  }
+}

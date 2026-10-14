@@ -21,6 +21,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let coordinator = AppCoordinator()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Hosted tests must not watch the user's clipboard or register login items.
+        guard ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil else { return }
         // LSUIElement=YES already keeps us out of the Dock; the status item is created in bootstrap.
         coordinator.bootstrap()
     }

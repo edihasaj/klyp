@@ -6,12 +6,7 @@ final class ClipboardStoreTests: XCTestCase {
     func makeStore(max: Int = 5) -> ClipboardStore {
         // Use a temp file so tests don't touch real history.
         let tmp = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-        try? FileManager.default.removeItem(at: tmp)
-        let store = ClipboardStore(maxItems: max)
-        // We can't override the file URL without exposing it, but for unit
-        // tests we simply blow away whatever it loaded.
-        for it in store.items { store.delete(id: it.id) }
-        return store
+        return ClipboardStore(maxItems: max, fileURL: tmp)
     }
 
     func testInsertNewItem() {

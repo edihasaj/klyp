@@ -1,0 +1,23 @@
+include:
+  - project.yml
+name: KlypAppStore
+targets:
+  Klyp:
+    settings:
+      base:
+        DEVELOPMENT_TEAM: T8J48M4QVY
+        ENABLE_APP_SANDBOX: YES
+        CODE_SIGN_ENTITLEMENTS: AppStore/Klyp.entitlements
+        INFOPLIST_KEY_ITSAppUsesNonExemptEncryption: NO
+        ARCHS: "arm64 x86_64"
+        ONLY_ACTIVE_ARCH: NO
+      configs:
+        Release:
+          CODE_SIGN_STYLE: Manual
+          CODE_SIGN_IDENTITY: "3rd Party Mac Developer Application"
+          CODE_SIGN_INJECT_BASE_ENTITLEMENTS: NO
+          PROVISIONING_PROFILE_SPECIFIER: "$(KLYP_MAS_PROFILE)"
+schemes:
+  Klyp:
+    archive:
+      config: Release

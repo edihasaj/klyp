@@ -1,5 +1,8 @@
 # Releasing Klyp
 
+For the sandboxed Mac App Store candidate and its separate signing process, see
+[mac-app-store.md](mac-app-store.md).
+
 Install only artifacts downloaded from a published official release. Publish
 the signed and notarized build before updating an installed copy of Klyp.
 
