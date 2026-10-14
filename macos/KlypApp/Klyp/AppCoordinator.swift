@@ -39,12 +39,15 @@ final class AppCoordinator {
         HotkeyManager.shared.register(DefaultHotkey.pasteUnstyled) { [weak self] in
             self?.pasteLatestUnstyled()
         }
+        #if !MAC_APP_STORE
+        // Store users opt in through the picker notice or the menu bar menu.
         // XCTest hosts the app too, but its runner cannot answer a modal alert.
         if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
                 self?.menuBar?.offerAccessibilityIfNeeded()
             }
         }
+        #endif
     }
 
     /// ⌃⇧V — paste the newest clipboard item into the frontmost app with all

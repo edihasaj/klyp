@@ -1,7 +1,7 @@
 {
   "appInfoLocalization": {
-    "name": "Klyp",
-    "subtitle": "Clipboard history in your menu",
+    "name": "Klyp: Clipboard History",
+    "subtitle": "Your copies, kept on your Mac",
     "privacyPolicyUrl": "https://github.com/edihasaj/klyp/blob/main/docs/privacy.md"
   },
   "appStoreVersionLocalization": {

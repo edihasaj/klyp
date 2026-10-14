@@ -137,6 +137,7 @@ running.
   prompt the system on first paste; until granted, items still get placed on
   the pasteboard so the user can `⌘V` themselves.
 - **Direct-download edition**: not sandboxed, no network use.
-- **Mac App Store candidate**: App Sandbox with read-only access to user-selected
-  files. The same source has not yet been verified under a running sandbox;
-  see [mac-app-store.md](mac-app-store.md).
+- **Mac App Store edition**: App Sandbox with read-only access to user-selected
+  files. Clipboard restoration works without Accessibility; automatic paste
+  uses the user's session event tap when permission is granted. See
+  [mac-app-store.md](mac-app-store.md) for signing and verification evidence.

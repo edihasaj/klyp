@@ -1,5 +1,5 @@
 ---
-summary: Mac App Store candidate configuration, signing, and remaining release gates.
+summary: Klyp's native Mac App Store edition, signing, screenshots, and submission.
 read_when:
   - Shipping Klyp to the Mac App Store
   - Changing sandbox entitlements, clipboard access, or release signing
@@ -7,99 +7,116 @@ read_when:
 
 # Mac App Store
 
-The store candidate uses `macos/KlypApp/project-app-store.yml`, bundle ID
-`com.edihasaj.klyp`, and Applifyer team `T8J48M4QVY`. It builds for both Apple
-Silicon and Intel on macOS 14+. The overlay enables App Sandbox and read-only
-access to user-selected files. It requests no network entitlement.
+Klyp's native Mac platform uses App Store Connect record `6822758532`, bundle ID
+`com.edihasaj.klyp`, and Applifyer team `T8J48M4QVY`. Version **1.0.0 (25)**
+was validated and uploaded on **14 October 2026**. Apple reports the build
+as `VALID`. The review submission is **WAITING_FOR_REVIEW**, confirmed through
+Apple's API on the same day. The release will publish automatically after approval.
 
-This configuration is a release candidate, not a submitted or validated store
-release. The existing Developer ID release process remains in
-[releasing.md](releasing.md).
+The store title is **Klyp: Clipboard History** because Apple reported that
+the exact name “Klyp” was already in use. The installed app remains named Klyp.
+It is free in all 175 territories, with automatic availability in new
+territories. App Privacy is published as **Data Not Collected**.
 
-## Current release gates
+`macos/KlypApp/project-app-store.yml` overlays the direct-download project.
+It builds for Intel and Apple Silicon on macOS 14+, enables App Sandbox and
+read-only user-selected file access, and defines `MAC_APP_STORE`. History,
+settings, and image caches stay in the local sandbox. No network entitlement,
+external updater, account, or payment service is included.
 
-On 14 October 2026, App Store Connect showed no Klyp app record and displayed:
+The store edition registers launch at login only after the user enables it
+in Settings. Its picker explains the permission-free workflow: choose an
+item, then press Command+V in the destination app. Accessibility is optional
+for automatic paste and the event-tap shortcut fallback. It is offered
+through the picker notice and menu bar menu rather than an alert at launch.
+Automatic paste posts Command+V within the user's session.
 
-> The Apple Developer Program License Agreement has been updated and needs to
-> be reviewed. In order to update your existing apps and submit new apps, the
-> Account Holder must review and accept the updated agreement.
+The direct-download release process remains in [releasing.md](releasing.md).
+The separate store version and build do not change that edition's version.
 
-The Account Holder must accept the agreement at
-<https://developer.apple.com/account>. An agent must not accept it for them.
+## Signing
 
-Before submitting, verify automatic paste, Carbon shortcuts, and the event-tap
-fallback in the distribution's sandbox. The current implementation posts
-Command+V at the HID event tap and requests Accessibility permission. Neither
-compilation nor a signed archive proves that those operations work inside App
-Sandbox. File history stores paths rather than persistent security-scoped
-bookmarks; verify file restoration and thumbnails after relaunch before
-advertising those features in the store listing.
+The shared Mac App Distribution and Mac Installer Distribution certificates
+are in the dedicated `chirpgo-mas.keychain-db`. The development certificate's
+display name contains its developer identifier `464627D7HL`; its organizational
+unit and provisioning profiles correctly belong to team `T8J48M4QVY`.
 
-## Build
+Installed profiles:
 
-Generate the candidate project:
+| Purpose | Profile |
+| --- | --- |
+| Local signed sandbox tests | Klyp Mac Development 2026-10 |
+| Store distribution | Klyp Mac App Store 2026-10 |
 
-```bash
-cd macos/KlypApp
-xcodegen generate --spec project-app-store.yml
-```
+Profiles live in `~/Library/Developer/Xcode/UserData/Provisioning Profiles`.
+The development profile uses the Mac Studio's **Provisioning UDID**.
 
-The full Xcode installation is required. Set
-`DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer` when the machine
-defaults to Command Line Tools.
+The machine's private `~/.profile` supplies the existing keychain password.
+Unlock that dedicated keychain without printing its password. Credentials
+come from the shared `Apple Admin API Key` in 1Password, accessed inside tmux.
+Keep the private API key workspace out of the repository.
 
-After registering the existing bundle ID and installing its Mac App Store
-profile through Apple's API, run from the repository root:
+## Verify and release
 
-```bash
-KLYP_MAS_PROFILE="<installed profile name>" \
-KLYP_MAS_KEYCHAIN="$HOME/Library/Keychains/<distribution keychain>.keychain-db" \
-bash scripts/build-app-store.sh
-```
+1. Bump the store build number in `project-app-store.yml`.
+2. Generate the store project and run the full hosted test suite:
 
-The keychain must already be unlocked. Use the existing team-wide Mac App
-Distribution and Mac Installer Distribution certificates; do not use Developer
-ID or separate notarization for a store package. The script checks the archive
-signature, sandbox entitlement, absence of debug access, and installer signature.
-It writes `dist/mac-app-store/Klyp.pkg` without installing or uploading it.
+   ```bash
+   cd macos/KlypApp
+   xcodegen generate --spec project-app-store.yml
+   DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer \
+     xcodebuild -project KlypAppStore.xcodeproj -scheme Klyp \
+       -configuration Debug -destination platform=macOS \
+       -derivedDataPath build/store-tests -resultBundlePath build/store-tests.xcresult \
+       OTHER_CODE_SIGN_FLAGS="--keychain $HOME/Library/Keychains/chirpgo-mas.keychain-db" test
+   ```
 
-## Prepared listing
+3. Run `scripts/build-app-store.sh` from the repository root:
 
-`macos/KlypApp/AppStore/listing/en-US.json` contains draft English app information
-and version listing attributes for their respective Apple API resources.
-The privacy policy is [privacy.md](privacy.md). Its listing URL becomes
-available when this document is published to the repository's default branch.
-Recheck the listing against the verified sandbox behavior before uploading.
-The draft does not promise automatic paste or persistent file access.
+   ```bash
+   KLYP_MAS_PROFILE="Klyp Mac App Store 2026-10" \
+   KLYP_MAS_KEYCHAIN="$HOME/Library/Keychains/chirpgo-mas.keychain-db" \
+     bash scripts/build-app-store.sh
+   ```
 
-## Local validation on 14 October 2026
+   The script archives, verifies signatures and sandbox entitlements, rejects
+   debug access, and signs `dist/mac-app-store/Klyp.pkg`. Store packages use
+   Apple's store validation rather than Developer ID notarization.
 
-All 117 existing tests passed on Xcode 27.0. The unsigned Release archive built
-successfully and contains both `arm64` and `x86_64`. Shell syntax, entitlement
-plist validation, and documentation discovery passed.
+4. Validate and upload the PKG with `xcrun altool`, using the API key workspace.
+   Wait for a `VALID` processed Mac build.
+5. Export the native screenshot attachments with `xcresulttool export attachments`
+   and run `scripts/frame-store-screenshots.py` through `uv --with pillow`.
+   Inspect the resulting 1440×900 images before upload. Listing attributes
+   and screenshots live under `macos/KlypApp/AppStore/listing`.
+6. Use the private `~/Projects/manager/scripts/klyp/store-release.py` to attach
+   screenshots, review details, and the processed build. Pass `--submit` to
+   submit through Apple's review API, then `--state` to read back the result.
 
-These checks do not validate a running sandbox: an unsigned archive has no
-effective sandbox signature. Distribution signing, Apple package validation,
-and real sandbox behavior remain outstanding. `guiport doctor` also reports
-that the desktop automation tool lacks Accessibility permission on this machine.
-Probeport run `20261014T132324309Z-change` exhausted its setup deadline without
-completing any checks; it provides no additional runtime verification.
+The public privacy policy is [privacy.md](privacy.md), published on GitHub.
+App Privacy is managed in the signed-in agent Chrome with `abx`; the public
+Apple API handles listings, pricing, availability, and review submission.
 
-## Finish the release
+## Verification evidence
 
-1. Complete the sandbox behavior checks on a development-signed build without
-   replacing an installed copy or changing its Accessibility grant.
-2. Register the bundle ID and create a macOS Klyp app record using the signed-in
-   agent Chrome and `abx`. Use the existing name and a unique SKU.
-3. Keep the app free. Complete category, age rating, territory availability,
-   review contact, and App Privacy. The current source has no analytics,
-   telemetry, account, or network collection, so Data Not Collected is appropriate.
-4. Publish a privacy policy and support URL, prepare accurate listing text,
-   and capture real sandboxed app screenshots at Apple's accepted Mac sizes.
-5. Validate and upload the signed PKG with `xcrun altool` and the shared
-   App Store Connect API key. Wait for a `VALID` processed Mac build.
-6. Attach that build, upload the listing and screenshots, and submit through
-   Apple's `reviewSubmissions` API. Record the resulting review state here.
+All **119 tests** passed in the development-signed App Sandbox on Xcode 27.0.
+The direct-download project's **117 tests** also passed after the store changes.
+They verify the running signature's sandbox entitlement, container storage,
+history persistence, clipboard restoration, removal of rich-text formatting,
+and native screen rendering. Carbon shortcut registration and re-registration
+succeeded. Hosted tests do not register login items or watch the user's clipboard,
+and their history stores use temporary files.
 
-Tests use temporary history files. The hosted test app skips clipboard watching,
-hotkey registration, and login-item registration.
+Both architecture slices compiled in the distribution archive. Its application
+identifier and sandbox entitlement were checked, debug access was absent, and
+both app and installer signatures verified. Apple package validation and upload
+completed without errors.
+
+Accessibility was not granted to the test build, so automatic paste into another
+app and the granted-permission event-tap fallback were not exercised. Physical
+shortcut delivery and persistent access to files copied from other apps also
+remain outside this test evidence. The listing does not promise persistent file
+access. The clipboard restoration workflow works without Accessibility.
+
+Local evidence is under `/tmp/verify/klyp-mac-app-store`, including
+`signed-final.xcresult`, `direct-final.xcresult`, validation and upload logs.

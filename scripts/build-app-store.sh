@@ -28,12 +28,16 @@ xcodebuild \
 APP="$OUTPUT/Klyp.xcarchive/Products/Applications/Klyp.app"
 codesign --verify --deep --strict "$APP"
 codesign -d --entitlements :- "$APP" > "$OUTPUT/signed-entitlements.plist"
-[[ "$(plutil -extract com.apple.security.app-sandbox raw "$OUTPUT/signed-entitlements.plist")" == true ]]
-if /usr/libexec/PlistBuddy -c 'Print :com.apple.security.get-task-allow' \
-  "$OUTPUT/signed-entitlements.plist" 2>/dev/null | grep -q true; then
-  echo "Distribution archive contains the debug entitlement." >&2
-  exit 1
-fi
+/usr/bin/python3 - "$OUTPUT/signed-entitlements.plist" <<'PY'
+import plistlib
+import sys
+
+with open(sys.argv[1], "rb") as stream:
+    entitlements = plistlib.load(stream)
+assert entitlements.get("com.apple.security.app-sandbox") is True, "Sandbox entitlement missing"
+assert not entitlements.get("com.apple.security.get-task-allow"), "Debug entitlement present"
+assert entitlements.get("com.apple.application-identifier") == "T8J48M4QVY.com.edihasaj.klyp"
+PY
 productbuild --component "$APP" /Applications \
   --sign "${KLYP_MAS_INSTALLER_IDENTITY:-3rd Party Mac Developer Installer: Applifyer, LLC (T8J48M4QVY)}" \
   --keychain "$KLYP_MAS_KEYCHAIN" "$OUTPUT/Klyp.pkg"

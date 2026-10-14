@@ -29,7 +29,12 @@ enum LoginItem {
         let defaults = UserDefaults.standard
         guard !defaults.bool(forKey: seedKey) else { return }
         defaults.set(true, forKey: seedKey)
+        #if MAC_APP_STORE
+        // Store users opt in through Settings before Klyp registers a login item.
+        defaults.set(false, forKey: prefKey)
+        #else
         defaults.set(true, forKey: prefKey)
         set(enabled: true)
+        #endif
     }
 }

@@ -1,11 +1,13 @@
 # Permissions
 
-Klyp uses two macOS facilities. Accessibility is offered at launch when it has
-not been granted, because it also provides a fallback for the global shortcut.
+Klyp uses two macOS facilities. The direct-download edition offers Accessibility
+at launch when it has not been granted. The Mac App Store edition offers it
+through the picker notice and menu bar menu.
 
 ## Accessibility
 
-**When**: at launch if access has not been granted. You can also right-click
+**When**: at launch in the direct-download edition if access has not been granted.
+You can also right-click
 Klyp's menu bar icon and choose **Enable Accessibility…** to open System Settings.
 
 **Why**: Klyp synthesizes a `⌘V` keystroke into the previously-active app and
@@ -26,7 +28,8 @@ apply to the installed app.
 
 ## Login Items
 
-**When**: you toggle "Launch at login" in Klyp's settings.
+**When**: you toggle "Launch at login" in Klyp's settings. The Mac App Store
+edition leaves this off until you choose to enable it.
 
 **Why**: registers Klyp with `SMAppService.mainApp`, which adds it to the
 user's Login Items.
@@ -42,6 +45,6 @@ The direct-download edition does **not** use:
 - Full Disk Access — it only reads the system pasteboard.
 - Automation/Apple Events — Klyp does not script other apps.
 
-The Mac App Store candidate enables App Sandbox and read-only access to
+The Mac App Store edition enables App Sandbox and read-only access to
 user-selected files. See [mac-app-store.md](mac-app-store.md) for its release
 gates. Clipboard history in that edition lives inside its sandbox container.

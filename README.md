@@ -38,6 +38,12 @@ CopyClip and CopyClip 2 — but one that doesn't fall over.
 
 ## Install
 
+### Mac App Store
+
+Klyp: Clipboard History 1.0.0 has been submitted to Apple for review. It will
+be free for Intel and Apple Silicon Macs running macOS 14 or later.
+See [Mac App Store release details](docs/mac-app-store.md).
+
 ### Homebrew (recommended, once published)
 
 ```bash
@@ -57,13 +63,15 @@ open build/Build/Products/Release/Klyp.app
 
 ## Permissions
 
-At launch, Klyp offers **Accessibility** permission if it is not enabled. It
+At launch, the direct-download edition offers **Accessibility** permission if it is not enabled. It
 uses this to paste into the focused app and to keep the global shortcut working
 when macOS stops delivering it. You can also right-click Klyp's menu bar icon
 and choose **Enable Accessibility…** to open the setting again.
 
 Klyp does not phone home. History stays on your machine in
 `~/Library/Application Support/Klyp/`.
+The Mac App Store edition stores history in its sandbox and offers Accessibility
+through the picker. Select an item and press `⌘V` yourself if access is not enabled.
 See the [privacy policy](docs/privacy.md) for details.
 
 ## Default Shortcuts

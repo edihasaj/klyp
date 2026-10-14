@@ -8,15 +8,30 @@ targets:
         DEVELOPMENT_TEAM: T8J48M4QVY
         ENABLE_APP_SANDBOX: YES
         CODE_SIGN_ENTITLEMENTS: AppStore/Klyp.entitlements
+        SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) MAC_APP_STORE"
         INFOPLIST_KEY_ITSAppUsesNonExemptEncryption: NO
         ARCHS: "arm64 x86_64"
         ONLY_ACTIVE_ARCH: NO
+        MARKETING_VERSION: "1.0.0"
+        CURRENT_PROJECT_VERSION: "25"
       configs:
+        Debug:
+          CODE_SIGN_STYLE: Manual
+          CODE_SIGN_IDENTITY: "Mac Developer"
+          PROVISIONING_PROFILE_SPECIFIER: "Klyp Mac Development 2026-10"
         Release:
           CODE_SIGN_STYLE: Manual
           CODE_SIGN_IDENTITY: "3rd Party Mac Developer Application"
           CODE_SIGN_INJECT_BASE_ENTITLEMENTS: NO
           PROVISIONING_PROFILE_SPECIFIER: "$(KLYP_MAS_PROFILE)"
+  KlypTests:
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.edihasaj.klyp.tests
+        DEVELOPMENT_TEAM: T8J48M4QVY
+        CODE_SIGN_STYLE: Manual
+        CODE_SIGN_IDENTITY: "Mac Developer"
+        SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) MAC_APP_STORE"
 schemes:
   Klyp:
     archive:

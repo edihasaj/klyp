@@ -34,11 +34,17 @@ struct HistoryView: View {
 
     private var permissionNotice: some View {
         VStack(alignment: .leading, spacing: 5) {
-            Text("Enable Accessibility")
+            Text("Paste automatically")
                 .font(.system(size: 13, weight: .semibold))
+            #if MAC_APP_STORE
+            Text("Select an item, then press ⌘V in your app. Enable Accessibility for automatic paste.")
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+            #else
             Text("Enable /Applications/Klyp.app for paste and ⌃Space. If Klyp is already on, remove that entry and add the installed app.")
                 .font(.system(size: 11))
                 .foregroundStyle(.secondary)
+            #endif
             Button("Open Settings") { coordinator.openAccessibilitySettings() }
                 .font(.system(size: 11, weight: .medium))
         }

@@ -219,7 +219,13 @@ enum Paster {
         let up = CGEvent(keyboardEventSource: src, virtualKey: vKey, keyDown: false)
         down?.flags = .maskCommand
         up?.flags = .maskCommand
+        #if MAC_APP_STORE
+        // Deliver inside the user's session rather than at the system HID layer.
+        down?.post(tap: .cgSessionEventTap)
+        up?.post(tap: .cgSessionEventTap)
+        #else
         down?.post(tap: .cghidEventTap)
         up?.post(tap: .cghidEventTap)
+        #endif
     }
 }
